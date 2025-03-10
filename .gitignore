@@ -1,0 +1,14 @@
+# executables
+cgen
+lexer
+parser
+semant
+
+# flex
+cool-lex.cc
+
+# object file
+*.o
+
+# vim
+*.swp
