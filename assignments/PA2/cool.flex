@@ -42,7 +42,6 @@ extern YYSTYPE cool_yylval;
 /*
  *  Add Your own definitions here
  */
-static void fill_string_buf(const char *text, int len);
 
 %}
 
@@ -53,7 +52,7 @@ static void fill_string_buf(const char *text, int len);
 DARROW          =>
 ASSIGN          <-
 WS              [ \n\f\r\t\v]
-BLANK           {WS}+
+BLANK           {WS}
 LETTER          [a-zA-Z]
 DIGIT           [0-9]
 INTEGER         {DIGIT}+
@@ -62,35 +61,32 @@ IDCHAR          ({LETTER}|{DIGIT}|_)
 TYPEID          [A-Z]{IDCHAR}*
 OBJECTID        [a-z]{IDCHAR}*
 SPECIAL_CHAR    [{}():;+\-/*~<=]
-DQ              \"
-ESCAPED_DQ      \\\"
-STR_CONST       {DQ}([^"]|{ESCAPED_DQ})*{DQ}
 SINGLE_COMMENT  --.*
 BEGIN_COMMENT   "(*"
 END_COMMENT     "*)"
+DOUBLE_QUOTE    \"
 
-%START COMMENT
+%START COMMENT STRING
 
 
 %option noyywrap
 %%
-{BLANK}                 { /* ignore white space */ }
-{SINGLE_COMMENT}        { printf("single comment\n"); /* ignore comment after two dashes */ }
+{SINGLE_COMMENT}        { /* ignore comment after two dashes */ }
 
  /*
   *  Nested comments
   */
-{BEGIN_COMMENT}           { printf("nested comment start\n"); BEGIN COMMENT; }
+{BEGIN_COMMENT}           { BEGIN COMMENT; }
 <COMMENT>{
-  {END_COMMENT}           { printf("nested comment end\n"); BEGIN 0; }
-  [^\*\)]*                { /* anything is ignored */ }
-  \*                      { /* '*' is ignored */ }
-  \)                      { /* ')' is ignored */ }
-  <<EOF>>                 {
-    BEGIN 0;
-    cool_yylval.error_msg = "EOF in comment";
-    return (ERROR); 
-  }
+    {END_COMMENT}           { BEGIN INITIAL; }
+    [^\*\)]*                { /* anything is ignored */ }
+    \*                      { /* '*' is ignored */ }
+    \)                      { /* ')' is ignored */ }
+    <<EOF>>                 {
+        BEGIN INITIAL;
+        cool_yylval.error_msg = "EOF in comment";
+        return (ERROR); 
+    }
 }
 
 {END_COMMENT}             {
@@ -137,10 +133,36 @@ true                    { return (BOOL_CONST); }
   *  \n \t \b \f, the result is c.
   *
   */
-{STR_CONST}             {
-    fill_string_buf(yytext, yyleng);
-    cool_yylval.symbol = stringtable.add_string(string_buf);
-    return (STR_CONST);
+<STRING>{
+    \\b                 { *string_buf_ptr++ = '\b'; }
+    \\t                 { *string_buf_ptr++ = '\t'; }
+    \\n                 { *string_buf_ptr++ = '\n'; }
+    \\f                 { *string_buf_ptr++ = '\f'; }
+    \\(.|\n)            { *string_buf_ptr++ = yytext[1]; }
+    [^"\\\n]+           {
+        memcpy(string_buf_ptr, yytext, yyleng);
+        string_buf_ptr += yyleng;
+    }
+    \n                  {
+        BEGIN INITIAL;
+        cool_yylval.error_msg = "Unterminated string constant";
+        return (ERROR);
+    }
+    {DOUBLE_QUOTE}      {
+        BEGIN INITIAL;
+        *string_buf_ptr = '\0';
+        cool_yylval.symbol = stringtable.add_string(string_buf);
+        return (STR_CONST);
+    }
+    <<EOF>>                 {
+        BEGIN INITIAL;
+        cool_yylval.error_msg = "EOF in string";
+        return (ERROR);
+    }
+}
+{DOUBLE_QUOTE}          {
+    BEGIN STRING;
+    string_buf_ptr = string_buf;
 }
 
 {TYPEID}                {
@@ -155,6 +177,7 @@ true                    { return (BOOL_CONST); }
     cool_yylval.symbol = inttable.add_string(yytext, yyleng);
     return (INT_CONST);
 }
+{BLANK}                 { /* ignore white space */ }
 .                       {
     char buf[2];
     buf[0] = *yytext;
@@ -164,37 +187,3 @@ true                    { return (BOOL_CONST); }
 }
 
 %%
-
-static int starts_with(const char *text, const char *prefix) {
-  while (*prefix) {
-    if (*text++ != *prefix++) { return 0; }
-  }
-  return 1;
-}
-
-static void fill_string_buf(const char *text, int len) {
-  const char *p = text + 1;
-  string_buf_ptr = string_buf;
-  int i = 1;
-  while (p < text + len - 1) {
-    if (starts_with(p, "\\b")) {
-      *string_buf_ptr++ = '\b';
-      p += 2;
-    } else if (starts_with(p, "\\t")) {
-      *string_buf_ptr++ = '\t';
-      p += 2;
-    } else if (starts_with(p, "\\n")) {
-      *string_buf_ptr++ = '\n';
-      p += 2;
-    } else if (starts_with(p, "\\f")) {
-      *string_buf_ptr++ = '\f';
-      p += 2;
-    } else if (text[i] == '\\') {
-      *string_buf_ptr++ = *++p;
-      p++;
-    } else {
-      *string_buf_ptr++ = *p++;
-    }
-  }
-  *string_buf_ptr = '\0';
-}
