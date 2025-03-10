@@ -1,3 +1,14 @@
+-- Check Special Character
+()
+{}
++-*/
+:;
+~
+<
+=
+-- Invalid Characters (Error)
+!@#$%^&[]\
+.|`
 -- This is a comment
 (* models one-dimensional cellular automaton on a circle of finite radius
    arrays are faked as Strings,

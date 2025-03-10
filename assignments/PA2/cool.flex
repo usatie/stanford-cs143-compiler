@@ -61,7 +61,7 @@ IDENTIFIER      ({LETTER}|_)({LETTER}|_|{DIGIT})*
 IDCHAR          ({LETTER}|{DIGIT}|_)
 TYPEID          [A-Z]{IDCHAR}*
 OBJECTID        [a-z]{IDCHAR}*
-SPECIAL_CHAR    [{}()\[\]:;+-/*~<=]
+SPECIAL_CHAR    [{}():;+\-/*~<=]
 DQ              \"
 ESCAPED_DQ      \\\"
 STR_CONST       {DQ}([^"]|{ESCAPED_DQ})*{DQ}
@@ -69,7 +69,7 @@ SINGLE_COMMENT  --.*
 OPEN_COMMENT    \(\*
 CLOSE_COMMENT   \*\)
 
-%START COMMENT
+%START NESTED_COMMENT
 
 
 %option noyywrap
@@ -80,11 +80,11 @@ CLOSE_COMMENT   \*\)
  /*
   *  Nested comments
   */
-\(\*                    { printf("nested comment start\n"); BEGIN COMMENT; }
-<COMMENT>\*\)           { printf("nexted comment end\n"); BEGIN 0; }
-<COMMENT>([^*/])*       { /* ignore */ }
-<COMMENT>\*             { /* ignore */ }
-<COMMENT>\)             { /* ignore */ }
+\(\*                    { printf("nested comment start\n"); BEGIN NESTED_COMMENT; }
+<NESTED_COMMENT>\*\)           { printf("nexted comment end\n"); BEGIN 0; }
+<NESTED_COMMENT>([^*/])*       { /* ignore */ }
+<NESTED_COMMENT>\*             { /* ignore */ }
+<NESTED_COMMENT>\)             { /* ignore */ }
 
 
  /*
@@ -145,7 +145,6 @@ true                    { return (BOOL_CONST); }
 }
 .                       {
     char buf[2];
-    // TODO: Set error message?
     buf[0] = *yytext;
     buf[1] = '\0';
     cool_yylval.error_msg = strdup(buf);
