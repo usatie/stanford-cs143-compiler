@@ -42,6 +42,7 @@ extern YYSTYPE cool_yylval;
 /*
  *  Add Your own definitions here
  */
+static void fill_string_buf(const char *text, int len);
 
 %}
 
@@ -50,23 +51,72 @@ extern YYSTYPE cool_yylval;
  */
 
 DARROW          =>
+ASSIGN          <-
+WS              [ \n\f\r\t\v]
+BLANK           {WS}+
+LETTER          [a-zA-Z]
+DIGIT           [0-9]
+INTEGER         {DIGIT}+
+IDENTIFIER      ({LETTER}|_)({LETTER}|_|{DIGIT})*
+IDCHAR          ({LETTER}|{DIGIT}|_)
+TYPEID          [A-Z]{IDCHAR}*
+OBJECTID        [a-z]{IDCHAR}*
+SPECIAL_CHAR    [{}()\[\]:;+-/*~<=]
+DQ              \"
+ESCAPED_DQ      \\\"
+STR_CONST       {DQ}([^"]|{ESCAPED_DQ})*{DQ}
+SINGLE_COMMENT  --.*
+OPEN_COMMENT    \(\*
+CLOSE_COMMENT   \*\)
+
+%START COMMENT
+
+
 %option noyywrap
 %%
+{BLANK}                 { /* ignore white space */ }
+{SINGLE_COMMENT}        { printf("single comment\n"); /* ignore comment after two dashes */ }
 
  /*
   *  Nested comments
   */
+\(\*                    { printf("nested comment start\n"); BEGIN COMMENT; }
+<COMMENT>\*\)           { printf("nexted comment end\n"); BEGIN 0; }
+<COMMENT>([^*/])*       { /* ignore */ }
+<COMMENT>\*             { /* ignore */ }
+<COMMENT>\)             { /* ignore */ }
 
 
  /*
   *  The multiple-character operators.
   */
 {DARROW}		{ return (DARROW); }
+{ASSIGN}		{ return (ASSIGN); }
 
  /*
   * Keywords are case-insensitive except for the values true and false,
   * which must begin with a lower-case letter.
   */
+class                   { return (CLASS); }
+else                    { return (ELSE); }
+false                   { return (BOOL_CONST); }
+fi                      { return (FI); }
+if                      { return (IF); }
+in                      { return (IN); }
+inherits                { return (INHERITS); }
+isvoid                  { return (ISVOID); }
+let                     { return (LET); }
+loop                    { return (LOOP); }
+pool                    { return (POOL); }
+then                    { return (THEN); }
+while                   { return (WHILE); }
+case                    { return (CASE); }
+esac                    { return (ESAC); }
+new                     { return (NEW); }
+of                      { return (OF); }
+not                     { return (NOT); }
+true                    { return (BOOL_CONST); }
+{SPECIAL_CHAR}          { return ((int)*yytext); }
 
 
  /*
@@ -75,6 +125,65 @@ DARROW          =>
   *  \n \t \b \f, the result is c.
   *
   */
+{STR_CONST}             {
+    fill_string_buf(yytext, yyleng);
+    cool_yylval.symbol = stringtable.add_string(string_buf);
+    return (STR_CONST);
+}
 
+{TYPEID}                {
+    cool_yylval.symbol = idtable.add_string(yytext, yyleng);
+    return (TYPEID);
+}
+{OBJECTID}              {
+    cool_yylval.symbol = idtable.add_string(yytext, yyleng);
+    return (OBJECTID);
+}
+{INTEGER}               {
+    cool_yylval.symbol = inttable.add_string(yytext, yyleng);
+    return (INT_CONST);
+}
+.                       {
+    char buf[2];
+    // TODO: Set error message?
+    buf[0] = *yytext;
+    buf[1] = '\0';
+    cool_yylval.error_msg = strdup(buf);
+    return (ERROR);
+}
 
 %%
+
+static int starts_with(const char *text, const char *prefix) {
+  while (*prefix) {
+    if (*text++ != *prefix++) { return 0; }
+  }
+  return 1;
+}
+
+static void fill_string_buf(const char *text, int len) {
+  const char *p = text + 1;
+  string_buf_ptr = string_buf;
+  int i = 1;
+  while (p < text + len - 1) {
+    if (starts_with(p, "\\b")) {
+      *string_buf_ptr++ = '\b';
+      p += 2;
+    } else if (starts_with(p, "\\t")) {
+      *string_buf_ptr++ = '\t';
+      p += 2;
+    } else if (starts_with(p, "\\n")) {
+      *string_buf_ptr++ = '\n';
+      p += 2;
+    } else if (starts_with(p, "\\f")) {
+      *string_buf_ptr++ = '\f';
+      p += 2;
+    } else if (text[i] == '\\') {
+      *string_buf_ptr++ = *++p;
+      p++;
+    } else {
+      *string_buf_ptr++ = *p++;
+    }
+  }
+  *string_buf_ptr = '\0';
+}
