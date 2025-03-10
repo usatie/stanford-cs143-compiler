@@ -50,7 +50,7 @@ extern YYSTYPE cool_yylval;
  */
 
 DARROW          =>
-
+%option noyywrap
 %%
 
  /*

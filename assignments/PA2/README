@@ -105,4 +105,43 @@ Instructions
 
 Write-up for PA2
 ----------------
+Initially, `make lexer` didn't work, probabliy due to the flex version issue.
 
+```
+$ make
+flex -d -ocool-lex.cc cool.flex
+/bin/sh -ec 'g++ -MM -I. -I../../include/PA2 -I../../src/PA2 cool-lex.cc | sed '\''s/\(cool-lex\.o\)[ :]*/\1 cool-lex.d : /g'\'' > cool-lex.d'
+../../etc/link-object 2 parser
+../../etc/..
+linking parser
+../../etc/link-object 2 semant
+../../etc/..
+linking semant
+../../etc/link-object 2 cgen
+../../etc/..
+linking cgen
+$ make lexer
+g++ -g -Wall -Wno-unused -Wno-write-strings -I. -I../../include/PA2 -I../../src/PA2 -c lextest.cc
+g++ -g -Wall -Wno-unused -Wno-write-strings -I. -I../../include/PA2 -I../../src/PA2 -c utilities.cc
+utilities.cc: In function ‘char* strdup(const char*)’:
+utilities.cc:220:3: warning: ‘nonnull’ argument ‘s’ compared to NULL [-Wnonnull-compare]
+  220 |   if (s == NULL) return(NULL);
+      |   ^~
+g++ -g -Wall -Wno-unused -Wno-write-strings -I. -I../../include/PA2 -I../../src/PA2 -c stringtab.cc
+g++ -g -Wall -Wno-unused -Wno-write-strings -I. -I../../include/PA2 -I../../src/PA2 -c handle_flags.cc
+g++ -g -Wall -Wno-unused -Wno-write-strings -I. -I../../include/PA2 -I../../src/PA2 -c cool-lex.cc
+g++ -g -Wall -Wno-unused -Wno-write-strings -I. -I../../include/PA2 -I../../src/PA2 lextest.o utilities.o stringtab.o handle_flags.o cool-lex.o -lfl -o lexer
+/usr/bin/ld: /usr/lib/gcc/x86_64-linux-gnu/13/../../../x86_64-linux-gnu/libfl.so: undefined reference to `yylex'
+collect2: error: ld returned 1 exit status
+make: *** [Makefile:39: lexer] Error 1
+```
+
+Fixed this issue by adding `%option noyywrap` between definitions and rules of `cool.flex`.
+
+### Reference
+https://stackoverflow.com/questions/34782625/undefined-reference-to-yylex
+> I had a similar problem, it turns out that flex 2.6.x changed the way yylex behaves.
+
+https://doraemonzzz.com/2021/03/21/Stanford%20Compiler%20PA2/#准备工作
+> 那么在definitions和rules之间增加如下内容即可：
+> %option noyywrap
