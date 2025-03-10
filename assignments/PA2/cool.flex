@@ -66,10 +66,10 @@ DQ              \"
 ESCAPED_DQ      \\\"
 STR_CONST       {DQ}([^"]|{ESCAPED_DQ})*{DQ}
 SINGLE_COMMENT  --.*
-OPEN_COMMENT    \(\*
-CLOSE_COMMENT   \*\)
+BEGIN_COMMENT   "(*"
+END_COMMENT     "*)"
 
-%START NESTED_COMMENT
+%START COMMENT
 
 
 %option noyywrap
@@ -80,11 +80,23 @@ CLOSE_COMMENT   \*\)
  /*
   *  Nested comments
   */
-\(\*                    { printf("nested comment start\n"); BEGIN NESTED_COMMENT; }
-<NESTED_COMMENT>\*\)           { printf("nexted comment end\n"); BEGIN 0; }
-<NESTED_COMMENT>([^*/])*       { /* ignore */ }
-<NESTED_COMMENT>\*             { /* ignore */ }
-<NESTED_COMMENT>\)             { /* ignore */ }
+{BEGIN_COMMENT}           { printf("nested comment start\n"); BEGIN COMMENT; }
+<COMMENT>{
+  {END_COMMENT}           { printf("nested comment end\n"); BEGIN 0; }
+  [^\*\)]*                { /* anything is ignored */ }
+  \*                      { /* '*' is ignored */ }
+  \)                      { /* ')' is ignored */ }
+  <<EOF>>                 {
+    BEGIN 0;
+    cool_yylval.error_msg = "EOF in comment";
+    return (ERROR); 
+  }
+}
+
+{END_COMMENT}             {
+    cool_yylval.error_msg = "Unmatched *)";
+    return (ERROR);
+}
 
 
  /*

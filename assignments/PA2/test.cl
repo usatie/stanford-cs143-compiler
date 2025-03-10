@@ -14,6 +14,8 @@
    arrays are faked as Strings,
    X's respresent live cells, dots represent dead cells,
    no error checking is done *)
+(* * * complicated ) test ) for * ) closing ) comment ) *)
+Unmatched Comment *)
 class CellularAutomaton inherits IO {
     population_map : String;
    
