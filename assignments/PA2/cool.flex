@@ -106,25 +106,39 @@ DOUBLE_QUOTE    \"
   * Keywords are case-insensitive except for the values true and false,
   * which must begin with a lower-case letter.
   */
-class                   { return (CLASS); }
-else                    { return (ELSE); }
-false                   { return (BOOL_CONST); }
-fi                      { return (FI); }
-if                      { return (IF); }
-in                      { return (IN); }
-inherits                { return (INHERITS); }
-isvoid                  { return (ISVOID); }
-let                     { return (LET); }
-loop                    { return (LOOP); }
-pool                    { return (POOL); }
-then                    { return (THEN); }
-while                   { return (WHILE); }
-case                    { return (CASE); }
-esac                    { return (ESAC); }
-new                     { return (NEW); }
-of                      { return (OF); }
-not                     { return (NOT); }
-true                    { return (BOOL_CONST); }
+(?i:class)              { return (CLASS); }
+(?i:else)               { return (ELSE); }
+(?i:fi)                 { return (FI); }
+(?i:if)                 { return (IF); }
+(?i:in)                 { return (IN); }
+(?i:inherits)           { return (INHERITS); }
+(?i:isvoid)             { return (ISVOID); }
+(?i:let)                { return (LET); }
+(?i:loop)               { return (LOOP); }
+(?i:pool)               { return (POOL); }
+(?i:then)               { return (THEN); }
+(?i:while)              { return (WHILE); }
+(?i:case)               { return (CASE); }
+(?i:esac)               { return (ESAC); }
+(?i:new)                { return (NEW); }
+(?i:of)                 { return (OF); }
+(?i:not)                { return (NOT); }
+
+ /* 
+  * Keywords but case sensitive boolean constants
+  */
+false                   {
+    yylval.boolean = 0;
+    return (BOOL_CONST);
+}
+true                    {
+    yylval.boolean = 1;
+    return (BOOL_CONST);
+}
+
+ /*
+  * Special Characters
+  */
 {SPECIAL_CHAR}          { return ((int)*yytext); }
 
 
