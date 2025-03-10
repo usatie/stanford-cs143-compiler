@@ -42,6 +42,7 @@ extern YYSTYPE cool_yylval;
 /*
  *  Add Your own definitions here
  */
+static void fill_string_buf(const char *text, size_t len);
 
 %}
 
@@ -134,15 +135,12 @@ true                    { return (BOOL_CONST); }
   *
   */
 <STRING>{
-    \\b                 { *string_buf_ptr++ = '\b'; }
-    \\t                 { *string_buf_ptr++ = '\t'; }
-    \\n                 { *string_buf_ptr++ = '\n'; }
-    \\f                 { *string_buf_ptr++ = '\f'; }
-    \\(.|\n)            { *string_buf_ptr++ = yytext[1]; }
-    [^"\\\n]+           {
-        memcpy(string_buf_ptr, yytext, yyleng);
-        string_buf_ptr += yyleng;
-    }
+    \\b                 { fill_string_buf("\b", 1); }
+    \\t                 { fill_string_buf("\t", 1); }
+    \\n                 { fill_string_buf("\n", 1); }
+    \\f                 { fill_string_buf("\f", 1); }
+    \\(.|\n)            { fill_string_buf(yytext+1, 1); }
+    [^"\\\n]+           { fill_string_buf(yytext, yyleng); }
     \n                  {
         BEGIN INITIAL;
         cool_yylval.error_msg = "Unterminated string constant";
@@ -150,7 +148,11 @@ true                    { return (BOOL_CONST); }
     }
     {DOUBLE_QUOTE}      {
         BEGIN INITIAL;
-        *string_buf_ptr = '\0';
+        if (string_buf_ptr >= string_buf + MAX_STR_CONST) {
+            cool_yylval.error_msg = "String constant too long";
+            return (ERROR);
+        }
+	fill_string_buf("\0", 1);
         cool_yylval.symbol = stringtable.add_string(string_buf);
         return (STR_CONST);
     }
@@ -187,3 +189,10 @@ true                    { return (BOOL_CONST); }
 }
 
 %%
+
+static void fill_string_buf(const char *text, size_t len) {
+    if (string_buf_ptr + len <= string_buf + MAX_STR_CONST) {
+      memcpy(string_buf_ptr, text, len);
+    }
+    string_buf_ptr += len;
+}
