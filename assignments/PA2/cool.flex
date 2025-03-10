@@ -42,7 +42,7 @@ extern YYSTYPE cool_yylval;
 /*
  *  Add Your own definitions here
  */
-static void fill_string_buf(const char *text, size_t len);
+static int fill_string_buf(const char *text, size_t len);
 
 %}
 
@@ -67,7 +67,7 @@ BEGIN_COMMENT   "(*"
 END_COMMENT     "*)"
 DOUBLE_QUOTE    \"
 
-%START COMMENT STRING
+%START COMMENT STRING STRING_ERROR
 
 
 %option noyywrap
@@ -134,31 +134,39 @@ true                    { return (BOOL_CONST); }
   *  \n \t \b \f, the result is c.
   *
   */
+<STRING_ERROR>{
+    \\(.|\n)            { /* skip until the end of the string */ }
+    [^"\\\n]+           { /* skip until the end of the string */ }
+    \n                  { BEGIN INITIAL; }
+    <<EOF>>             { BEGIN INITIAL; }
+    .                   { /* skip until the end of the string */ }
+}
 <STRING>{
-    \\b                 { fill_string_buf("\b", 1); }
-    \\t                 { fill_string_buf("\t", 1); }
-    \\n                 { fill_string_buf("\n", 1); }
-    \\f                 { fill_string_buf("\f", 1); }
-    \\(.|\n)            { fill_string_buf(yytext+1, 1); }
-    [^"\\\n]+           { fill_string_buf(yytext, yyleng); }
+    \\b                 { if (fill_string_buf("\b", 1) < 0) return (ERROR); }
+    \\t                 { if (fill_string_buf("\t", 1) < 0) return (ERROR); }
+    \\n                 { if (fill_string_buf("\n", 1) < 0) return (ERROR); }
+    \\f                 { if (fill_string_buf("\f", 1) < 0) return (ERROR); }
+    \\(.|\n)            { if (fill_string_buf(yytext+1, 1) < 0) return (ERROR); }
+    [^"\\\n]+           { if (fill_string_buf(yytext, yyleng) < 0) return (ERROR); }
     \n                  {
         BEGIN INITIAL;
         cool_yylval.error_msg = "Unterminated string constant";
         return (ERROR);
     }
+    <<EOF>>             {
+        BEGIN INITIAL;
+        cool_yylval.error_msg = "EOF in string";
+        return (ERROR);
+    }
     {DOUBLE_QUOTE}      {
         BEGIN INITIAL;
-        if (string_buf_ptr >= string_buf + MAX_STR_CONST) {
-            cool_yylval.error_msg = "String constant too long";
-            return (ERROR);
-        }
-	fill_string_buf("\0", 1);
+	if (fill_string_buf("\0", 1) < 0) return (ERROR);
         cool_yylval.symbol = stringtable.add_string(string_buf);
         return (STR_CONST);
     }
-    <<EOF>>                 {
-        BEGIN INITIAL;
-        cool_yylval.error_msg = "EOF in string";
+    .                   {
+        BEGIN STRING_ERROR;
+        cool_yylval.error_msg = "String contains null character";
         return (ERROR);
     }
 }
@@ -190,9 +198,14 @@ true                    { return (BOOL_CONST); }
 
 %%
 
-static void fill_string_buf(const char *text, size_t len) {
+static int fill_string_buf(const char *text, size_t len) {
     if (string_buf_ptr + len <= string_buf + MAX_STR_CONST) {
-      memcpy(string_buf_ptr, text, len);
+        memcpy(string_buf_ptr, text, len);
+        string_buf_ptr += len;
+        return 0;
+    } else {
+        BEGIN STRING_ERROR;
+        yylval.error_msg = "String constant too long";
+        return -1;
     }
-    string_buf_ptr += len;
 }
