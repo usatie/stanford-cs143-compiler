@@ -78,9 +78,16 @@ DOUBLE_QUOTE    \"
  /*
   *  Nested comments
   */
-{BEGIN_COMMENT}           {
-    BEGIN COMMENT;
-    num_nested_comment++;
+<INITIAL>{
+    {SINGLE_COMMENT}     { /* ignore comment after two dashes */ }
+    {BEGIN_COMMENT}      {
+        BEGIN COMMENT;
+        num_nested_comment++;
+    }
+    {END_COMMENT}        {
+        cool_yylval.error_msg = "Unmatched *)";
+        return (ERROR);
+    }
 }
 <COMMENT>{
 	{BEGIN_COMMENT}           {
@@ -104,11 +111,51 @@ DOUBLE_QUOTE    \"
     }
 }
 
-{END_COMMENT}             {
-    cool_yylval.error_msg = "Unmatched *)";
-    return (ERROR);
-}
 
+<INITIAL>{
+    
+     /*
+      *  The multiple-character operators.
+      */
+    {DARROW}		{ return (DARROW); }
+    {ASSIGN}		{ return (ASSIGN); }
+    {LE}            { return (LE); }
+    
+     /*
+      * Keywords are case-insensitive except for the values true and false,
+      * which must begin with a lower-case letter.
+      */
+    (?i:class)              { return (CLASS); }
+    (?i:else)               { return (ELSE); }
+    (?i:fi)                 { return (FI); }
+    (?i:if)                 { return (IF); }
+    (?i:in)                 { return (IN); }
+    (?i:inherits)           { return (INHERITS); }
+    (?i:isvoid)             { return (ISVOID); }
+    (?i:let)                { return (LET); }
+    (?i:loop)               { return (LOOP); }
+    (?i:pool)               { return (POOL); }
+    (?i:then)               { return (THEN); }
+    (?i:while)              { return (WHILE); }
+    (?i:case)               { return (CASE); }
+    (?i:esac)               { return (ESAC); }
+    (?i:new)                { return (NEW); }
+    (?i:of)                 { return (OF); }
+    (?i:not)                { return (NOT); }
+    
+     /* 
+      * Keywords but case sensitive boolean constants
+      */
+    f(?i:alse)              {
+        yylval.boolean = 0;
+        return (BOOL_CONST);
+    }
+    t(?i:rue)               {
+        yylval.boolean = 1;
+        return (BOOL_CONST);
+    }
+}
+    
  /*
   *  String constants (C syntax)
   *  Escape sequence \c is accepted for all characters c. Except for 
@@ -158,82 +205,42 @@ DOUBLE_QUOTE    \"
         cool_yylval.error_msg = "String contains null character";
     }
 }
+
 <INITIAL>{
-{DOUBLE_QUOTE}          {
-    BEGIN STRING;
-    string_buf_ptr = string_buf;
+    {DOUBLE_QUOTE}          {
+        BEGIN STRING;
+        string_buf_ptr = string_buf;
+    }
 }
-
-
-{SINGLE_COMMENT}        { /* ignore comment after two dashes */ }
-
- /*
-  *  The multiple-character operators.
-  */
-{DARROW}		{ return (DARROW); }
-{ASSIGN}		{ return (ASSIGN); }
-{LE}            { return (LE); }
-
- /*
-  * Keywords are case-insensitive except for the values true and false,
-  * which must begin with a lower-case letter.
-  */
-(?i:class)              { return (CLASS); }
-(?i:else)               { return (ELSE); }
-(?i:fi)                 { return (FI); }
-(?i:if)                 { return (IF); }
-(?i:in)                 { return (IN); }
-(?i:inherits)           { return (INHERITS); }
-(?i:isvoid)             { return (ISVOID); }
-(?i:let)                { return (LET); }
-(?i:loop)               { return (LOOP); }
-(?i:pool)               { return (POOL); }
-(?i:then)               { return (THEN); }
-(?i:while)              { return (WHILE); }
-(?i:case)               { return (CASE); }
-(?i:esac)               { return (ESAC); }
-(?i:new)                { return (NEW); }
-(?i:of)                 { return (OF); }
-(?i:not)                { return (NOT); }
-
- /* 
-  * Keywords but case sensitive boolean constants
-  */
-f(?i:alse)              {
-    yylval.boolean = 0;
-    return (BOOL_CONST);
-}
-t(?i:rue)               {
-    yylval.boolean = 1;
-    return (BOOL_CONST);
-}
-
-{TYPEID}                {
-    cool_yylval.symbol = idtable.add_string(yytext, yyleng);
-    return (TYPEID);
-}
-{OBJECTID}              {
-    cool_yylval.symbol = idtable.add_string(yytext, yyleng);
-    return (OBJECTID);
-}
-{INTEGER}               {
-    cool_yylval.symbol = inttable.add_string(yytext, yyleng);
-    return (INT_CONST);
-}
- /*
-  * Special Characters
-  */
-{SPECIAL_CHAR}          { return ((int)*yytext); }
-
-\n                      { curr_lineno++; }
-{BLANK}                 { /* ignore white space */ }
-.                       {
-    char buf[2];
-    buf[0] = *yytext;
-    buf[1] = '\0';
-    cool_yylval.error_msg = strdup(buf);
-    return (ERROR);
-}
+    
+    
+<INITIAL>{
+    {TYPEID}                {
+        cool_yylval.symbol = idtable.add_string(yytext, yyleng);
+        return (TYPEID);
+    }
+    {OBJECTID}              {
+        cool_yylval.symbol = idtable.add_string(yytext, yyleng);
+        return (OBJECTID);
+    }
+    {INTEGER}               {
+        cool_yylval.symbol = inttable.add_string(yytext, yyleng);
+        return (INT_CONST);
+    }
+     /*
+      * Special Characters
+      */
+    {SPECIAL_CHAR}          { return ((int)*yytext); }
+    
+    \n                      { curr_lineno++; }
+    {BLANK}                 { /* ignore white space */ }
+    .                       {
+        char buf[2];
+        buf[0] = *yytext;
+        buf[1] = '\0';
+        cool_yylval.error_msg = strdup(buf);
+        return (ERROR);
+    }
 }
 
 %%
