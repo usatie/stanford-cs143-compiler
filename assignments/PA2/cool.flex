@@ -52,6 +52,7 @@ static int fill_string_buf(const char *text, size_t len);
 
 DARROW          =>
 ASSIGN          <-
+LE              <=
 WS              [ \n\f\r\t\v]
 BLANK           {WS}
 LETTER          [a-zA-Z]
@@ -101,6 +102,7 @@ DOUBLE_QUOTE    \"
   */
 {DARROW}		{ return (DARROW); }
 {ASSIGN}		{ return (ASSIGN); }
+{LE}            { return (LE); }
 
  /*
   * Keywords are case-insensitive except for the values true and false,
