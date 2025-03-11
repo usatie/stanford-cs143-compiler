@@ -170,6 +170,11 @@ t(?i:rue)               {
     \\t                 { if (fill_string_buf("\t", 1) < 0) return (ERROR); }
     \\n                 { if (fill_string_buf("\n", 1) < 0) return (ERROR); }
     \\f                 { if (fill_string_buf("\f", 1) < 0) return (ERROR); }
+    \\\0                {
+        BEGIN STRING_ERROR;
+        cool_yylval.error_msg = "String contains escaped null character";
+        return (ERROR);
+    }
     \\(.|\n)            { if (fill_string_buf(yytext+1, 1) < 0) return (ERROR); }
     [^"\\\n]+           { if (fill_string_buf(yytext, yyleng) < 0) return (ERROR); }
     \n                  {
