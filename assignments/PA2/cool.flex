@@ -127,11 +127,11 @@ DOUBLE_QUOTE    \"
  /* 
   * Keywords but case sensitive boolean constants
   */
-false                   {
+f(?i:alse)              {
     yylval.boolean = 0;
     return (BOOL_CONST);
 }
-true                    {
+t(?i:rue)               {
     yylval.boolean = 1;
     return (BOOL_CONST);
 }
