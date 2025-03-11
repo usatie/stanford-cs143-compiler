@@ -7,7 +7,7 @@ AR= gar
 ARCHIVE_NEW= -cr
 RANLIB= gar -qs
 
-SRC= cool.y cool-tree.handcode.h good.cl bad.cl README
+SRC= cool.y cool-tree.handcode.h good.cl bad.cl README Makefile
 CSRC= parser-phase.cc utilities.cc stringtab.cc dumptype.cc \
       tree.cc cool-tree.cc tokens-lex.cc  handle_flags.cc 
 TSRC= myparser mycoolc cool-tree.aps
@@ -64,6 +64,9 @@ ${TSRC} ${CSRC}:
 
 ${HSRC}:
 	-ln -s ${CLASSDIR}/include/PA${ASSN}/$@ $@
+
+${SRC}:
+	cp ${CLASSDIR}/assignments/PA${ASSN}/$@ $@
 
 clean :
 	-rm -f ${OUTPUT} *.s core ${OBJS} ${CGEN} ${HGEN} lexer parser cgen semant *~ *.a *.o 
