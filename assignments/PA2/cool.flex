@@ -74,7 +74,6 @@ DOUBLE_QUOTE    \"
 
 %option noyywrap
 %%
-{SINGLE_COMMENT}        { /* ignore comment after two dashes */ }
 
  /*
   *  Nested comments
@@ -159,11 +158,14 @@ DOUBLE_QUOTE    \"
         cool_yylval.error_msg = "String contains null character";
     }
 }
+<INITIAL>{
 {DOUBLE_QUOTE}          {
     BEGIN STRING;
     string_buf_ptr = string_buf;
 }
 
+
+{SINGLE_COMMENT}        { /* ignore comment after two dashes */ }
 
  /*
   *  The multiple-character operators.
@@ -231,6 +233,7 @@ t(?i:rue)               {
     buf[1] = '\0';
     cool_yylval.error_msg = strdup(buf);
     return (ERROR);
+}
 }
 
 %%
