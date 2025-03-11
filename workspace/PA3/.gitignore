@@ -1,0 +1,8 @@
+*
+!.gitignore
+!README
+!cool.y
+!good.cl
+!bad.cl
+!Makefile
+!cool-tree.handcode.h
