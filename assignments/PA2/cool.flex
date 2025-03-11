@@ -137,12 +137,6 @@ true                    {
 }
 
  /*
-  * Special Characters
-  */
-{SPECIAL_CHAR}          { return ((int)*yytext); }
-
-
- /*
   *  String constants (C syntax)
   *  Escape sequence \c is accepted for all characters c. Except for 
   *  \n \t \b \f, the result is c.
@@ -201,6 +195,11 @@ true                    {
     cool_yylval.symbol = inttable.add_string(yytext, yyleng);
     return (INT_CONST);
 }
+ /*
+  * Special Characters
+  */
+{SPECIAL_CHAR}          { return ((int)*yytext); }
+
 {BLANK}                 { /* ignore white space */ }
 .                       {
     char buf[2];
