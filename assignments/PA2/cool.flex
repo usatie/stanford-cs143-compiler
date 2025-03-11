@@ -42,6 +42,7 @@ extern YYSTYPE cool_yylval;
 /*
  *  Add Your own definitions here
  */
+static int num_nested_comment = 0;
 static int fill_string_buf(const char *text, size_t len);
 
 %}
@@ -78,12 +79,25 @@ DOUBLE_QUOTE    \"
  /*
   *  Nested comments
   */
-{BEGIN_COMMENT}           { BEGIN COMMENT; }
+{BEGIN_COMMENT}           {
+    BEGIN COMMENT;
+    num_nested_comment++;
+}
 <COMMENT>{
-    {END_COMMENT}           { BEGIN INITIAL; }
-    [^\*\)]*                { /* anything is ignored */ }
+	{BEGIN_COMMENT}           {
+        num_nested_comment++;
+	}
+    {END_COMMENT}           {
+        num_nested_comment--;
+        if (num_nested_comment == 0) {
+            BEGIN INITIAL;
+        }
+	}
+    [^\*\(\)\n]*            { /* anything is ignored */ }
     \*                      { /* '*' is ignored */ }
     \)                      { /* ')' is ignored */ }
+    \(                      { /* '(' is ignored */ }
+    \n                      { curr_lineno++; }
     <<EOF>>                 {
         BEGIN INITIAL;
         cool_yylval.error_msg = "EOF in comment";
@@ -202,6 +216,7 @@ t(?i:rue)               {
   */
 {SPECIAL_CHAR}          { return ((int)*yytext); }
 
+\n                      { curr_lineno++; }
 {BLANK}                 { /* ignore white space */ }
 .                       {
     char buf[2];
