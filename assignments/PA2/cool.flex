@@ -61,7 +61,7 @@ IDENTIFIER      ({LETTER}|_)({LETTER}|_|{DIGIT})*
 IDCHAR          ({LETTER}|{DIGIT}|_)
 TYPEID          [A-Z]{IDCHAR}*
 OBJECTID        [a-z]{IDCHAR}*
-SPECIAL_CHAR    [{}():;+\-/*~<=]
+SPECIAL_CHAR    [{}():;+\-/*~<=,.]
 SINGLE_COMMENT  --.*
 BEGIN_COMMENT   "(*"
 END_COMMENT     "*)"
