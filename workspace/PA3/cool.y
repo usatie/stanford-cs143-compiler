@@ -186,8 +186,8 @@
     ;
 
     attribute
-    : OBJECTID ':' TYPEID
-    | OBJECTID ':' TYPEID ASSIGN expr
+    : OBJECTID ':' TYPEID { $$ = attr($1, $3, no_expr()); }
+    | OBJECTID ':' TYPEID ASSIGN expr { $$ = attr($1, $3, $5); }
     ;
 
     /* Formal */
