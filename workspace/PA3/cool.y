@@ -309,6 +309,7 @@
     block_expr_list
     : block_expr_list expr ';' { $$ = append_Expressions($1, single_Expressions($2)); }
     | expr ';' { $$ = single_Expressions($1); }
+    | error ';' { yyerrok; } /* simple error recovery for errors in an expression inside a block */
     ;
 
     /* 7.8 Let */
