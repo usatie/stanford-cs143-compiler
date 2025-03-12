@@ -228,6 +228,7 @@
     | conditional { $$ = $1; }
     | loop { $$ = $1; }
 	| case_expr { $$ = $1; }
+    | new { $$ = $1; }
     ;
 
     constant
@@ -262,11 +263,14 @@
     : CASE expr OF case_list ESAC { $$ = typcase($2, $4); }
 
     case_list
-	: case { $$ = single_Cases($1); }
-	| case_list case { $$ = append_Cases($1, single_Cases($2)); }
+    : case { $$ = single_Cases($1); }
+    | case_list case { $$ = append_Cases($1, single_Cases($2)); }
 
     case
-	: OBJECTID ':' TYPEID DARROW expr ';' { $$ = branch($1, $3, $5); }
+    : OBJECTID ':' TYPEID DARROW expr ';' { $$ = branch($1, $3, $5); }
+
+    new
+    : NEW TYPEID { $$ = new_($2); }
 
     let
     : LET nested_let { $$ = $2; }
