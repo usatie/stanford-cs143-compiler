@@ -156,7 +156,6 @@
     %type <expression> let
     %type <expression> binding_list
     %type <expression> initialization
-    %type <expression> body
     %type <expression> case_expr
     %type <cases> case_list
     %type <case_> case
@@ -322,17 +321,14 @@
     ;
 
     binding_list
-    : OBJECTID ':' TYPEID initialization body { $$ = let($1, $3, $4, $5); }
+    : OBJECTID ':' TYPEID initialization ',' binding_list { $$ = let($1, $3, $4, $6); }
+    | error binding_list { $$ = $2; }
+    | OBJECTID ':' TYPEID initialization IN expr { $$ = let($1, $3, $4, $6); }
     ;
 
     initialization
     : { $$ = no_expr(); }
     | ASSIGN expr { $$ = $2; }
-    ;
-
-    body
-    : ',' binding_list { $$ = $2; }
-    | IN expr { $$ = $2; }
     ;
 
     /* 7.9 Case */
