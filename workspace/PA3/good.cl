@@ -50,13 +50,17 @@ class Expressions {
     new_(): Int { new Int };
     -- isvoid
     isvoid_(x : Int): Int { isvoid x };
+    -- arithmetic
+    parentheses(): Int { (42) };
+    plus(a : Int, b : Int): Int { a + b };
+    sub(a : Int, b : Int): Int { a - b };
+    mul(a : Int, b : Int): Int { a * b };
+    divide(a : Int, b : Int): Int { a / b };
+    integer_complement(x : Int): Int { ~x };
     -- let
     single_let(): Int { let a : Int in (42) };
     nested_let(): Int { let a : Int, b : Int, c : Int in (42) };
-    -- arithmetic
-    plus(a : Int, b : Int): Int { a + b };
     boolean_complement(a : Boolean): Boolean { not a };
-    parentheses(): Int { (42) };
     object(a : Int): Int { a };
     -- constant
     int(): Int { 42 };

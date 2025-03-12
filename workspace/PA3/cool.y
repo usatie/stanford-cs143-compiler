@@ -219,8 +219,6 @@
     expr
     : OBJECTID { $$ = object($1); }
     | NOT expr { $$ = comp($2); }
-    | '(' expr ')' { $$ = $2; }
-    | expr '+' expr { $$ = plus($1, $3); }
     | let { $$ = $1; }
     | constant { $$ = $1; }
     | assignment { $$ = $1; }
@@ -230,6 +228,7 @@
     | case_expr { $$ = $1; }
     | new { $$ = $1; }
     | isvoid { $$ = $1; }
+    | arithmetic_op { $$ = $1; }
     ;
 
     constant
@@ -276,6 +275,13 @@
     isvoid
     : ISVOID expr { $$ = isvoid($2); }
 
+    arithmetic_op
+    : '(' expr ')' { $$ = $2; }
+    | expr '+' expr { $$ = plus($1, $3); }
+    | expr '-' expr { $$ = sub($1, $3); }
+    | expr '*' expr { $$ = mul($1, $3); }
+    | expr '/' expr { $$ = divide($1, $3); }
+    | '~' expr { $$ = comp($2); }
 
     let
     : LET nested_let { $$ = $2; }
