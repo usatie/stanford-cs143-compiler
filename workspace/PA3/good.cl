@@ -34,6 +34,9 @@ class Expressions {
     dispatch(s : SingleMethod): Int { s.no_args() };
     dispatch2(m : MultipleMethods): Int { m.single_arg(42) };
     dispatch3(m : MultipleMethods): Int { m.multiple_args(42, 21, 0) };
+    dispatch_self(): Int { assign_expr() };
+    dispatch_self2(): Int { object(42) };
+    dispatch_self3(): Int { plus(12, 34) };
     single_let(): Int { let a : Int in (42) };
     nested_let(): Int { let a : Int, b : Int, c : Int in (42) };
     plus(a : Int, b : Int): Int { a + b };

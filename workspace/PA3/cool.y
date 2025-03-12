@@ -217,8 +217,9 @@
     ;
 
     dispatch
-    /* TODO: short hand for ommitting self */
-    : expr '.' OBJECTID '(' ')' { $$ = dispatch($1, $3, nil_Expressions()); }
+    : OBJECTID '(' ')' { $$ = dispatch(object((Symbol)idtable.add_string("self")), $1, nil_Expressions()); }
+    | OBJECTID '(' expr_list ')' { $$ = dispatch(object(idtable.add_string("self")), $1, $3); }
+    | expr '.' OBJECTID '(' ')' { $$ = dispatch($1, $3, nil_Expressions()); }
     | expr '.' OBJECTID '(' expr_list ')' { $$ = dispatch($1, $3, $5); }
     /* TODO: static dispatch */
     ;
