@@ -223,6 +223,7 @@
     | constant { $$ = $1; }
     | assignment { $$ = $1; }
     | dispatch { $$ = $1; }
+    | conditional { $$ = $1; }
     ;
 
     constant
@@ -246,6 +247,9 @@
     : expr_list ',' expr { $$ = append_Expressions($1, single_Expressions($3)); }
     | expr { $$ = single_Expressions($1); }
     ;
+
+    conditional
+    : IF expr THEN expr ELSE expr FI { $$ = cond($2, $4, $6); }
 
     let
     : LET nested_let { $$ = $2; }

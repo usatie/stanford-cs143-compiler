@@ -30,19 +30,26 @@ class Attributes {
 
 -- expression
 class Expressions {
+    -- assignment
     assign_expr(): Int { a <- 1 };
+    -- dispatch
     dispatch(s : SingleMethod): Int { s.no_args() };
     dispatch2(m : MultipleMethods): Int { m.single_arg(42) };
     dispatch3(m : MultipleMethods): Int { m.multiple_args(42, 21, 0) };
     dispatch_self(): Int { assign_expr() };
     dispatch_self2(): Int { object(42) };
     dispatch_self3(): Int { plus(12, 34) };
+    -- conditional
+    conditional(a: Int, b: Int, cond: Boolean): Int { if cond then a else b fi };
+    -- let
     single_let(): Int { let a : Int in (42) };
     nested_let(): Int { let a : Int, b : Int, c : Int in (42) };
+    -- arithmetic
     plus(a : Int, b : Int): Int { a + b };
     boolean_complement(a : Boolean): Boolean { not a };
     parentheses(): Int { (42) };
     object(a : Int): Int { a };
+    -- constant
     int(): Int { 42 };
     str(): String { "Hello, world\n" };
     boolean_true(): Boolean { true };
