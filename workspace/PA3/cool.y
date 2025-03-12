@@ -142,6 +142,7 @@
     %type <formals> formal_list
     %type <formal> formal
     %type <expression> expr
+    %type <expression> let_expr
 
     
     /* Precedence declarations go here. */
@@ -190,18 +191,31 @@
 
     /* Formal */
     formal_list
-    : formal { nil_Formals(); }
-    | formal ',' formal_list { nil_Formals(); }
+    : formal { $$ = single_Formals($1); }
+    | formal ',' formal_list { $$ = append_Formals($3, single_Formals($1)); }
     ;
 
     formal
-    : OBJECTID ':' TYPEID { /* TODO */ }
+    : OBJECTID ':' TYPEID { $$ = formal($1, $3); }
 
     /* Expression */
     expr
-    : INT_CONST { $$ = int_const($1);  }
+    : OBJECTID ASSIGN expr { $$ = assign($1, $3); }
+    | let_expr { $$ = $1; }
+    | expr '+' expr { $$ = plus($1, $3); }
+    | '(' expr ')' { $$ = $2; }
+    | NOT expr { $$ = comp($2); }
+    | OBJECTID { $$ = object($1); }
+    | INT_CONST { $$ = int_const($1);  }
+    | STR_CONST { $$ = string_const($1); }
+    | BOOL_CONST { $$ = bool_const($1); }
     ;
 
+    let_expr
+    : LET OBJECTID ':' TYPEID IN expr { $$ = let($2, $4, no_expr(), $6); }
+    | LET OBJECTID ':' TYPEID ASSIGN expr IN expr { $$ = let($2, $4, $6, $8); }
+    /* TODO: multiple type_declarations */
+    ;
     
     /* end of grammar */
     %%
