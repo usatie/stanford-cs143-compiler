@@ -221,7 +221,8 @@
     | OBJECTID '(' expr_list ')' { $$ = dispatch(object(idtable.add_string("self")), $1, $3); }
     | expr '.' OBJECTID '(' ')' { $$ = dispatch($1, $3, nil_Expressions()); }
     | expr '.' OBJECTID '(' expr_list ')' { $$ = dispatch($1, $3, $5); }
-    /* TODO: static dispatch */
+    | expr '@' TYPEID '.' OBJECTID '(' ')' { $$ = static_dispatch($1, $3, $5, nil_Expressions()); }
+    | expr '@' TYPEID '.' OBJECTID '(' expr_list ')' { $$ = static_dispatch($1, $3, $5, $7); }
     ;
 
     expr_list

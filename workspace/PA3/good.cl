@@ -49,6 +49,12 @@ class Expressions {
     boolean_false(): Boolean { false };
 };
 
+class MoreExpressions inherits Expressions {
+    static_dispatch_self(): Int { self@Expressions.assign_expr() };
+    static_dispatch_self2(): Int { self@Expressions.object(42) };
+    static_dispatch_self3(): Int { self@Expressions.plus(12, 34) };
+};
+
 
 -- Original good.cl
 class AAAAA {
