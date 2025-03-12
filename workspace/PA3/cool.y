@@ -141,7 +141,9 @@
     %type <feature> attribute
     %type <formals> non_empty_formal_list
     %type <formal> formal
+    %type <expressions> expr_list
     %type <expression> expr
+    %type <expression> dispatch
     %type <expression> let_expr
     %type <expression> nested_let
 
@@ -202,15 +204,28 @@
 
     /* Expression */
     expr
-    : OBJECTID ASSIGN expr { $$ = assign($1, $3); }
-    | let_expr { $$ = $1; }
-    | expr '+' expr { $$ = plus($1, $3); }
-    | '(' expr ')' { $$ = $2; }
-    | NOT expr { $$ = comp($2); }
-    | OBJECTID { $$ = object($1); }
-    | INT_CONST { $$ = int_const($1);  }
+    : BOOL_CONST { $$ = bool_const($1); }
     | STR_CONST { $$ = string_const($1); }
-    | BOOL_CONST { $$ = bool_const($1); }
+    | INT_CONST { $$ = int_const($1);  }
+    | OBJECTID { $$ = object($1); }
+    | NOT expr { $$ = comp($2); }
+    | '(' expr ')' { $$ = $2; }
+    | expr '+' expr { $$ = plus($1, $3); }
+    | let_expr { $$ = $1; }
+    | dispatch { $$ = $1; }
+    | OBJECTID ASSIGN expr { $$ = assign($1, $3); }
+    ;
+
+    dispatch
+    /* TODO: short hand for ommitting self */
+    : expr '.' OBJECTID '(' ')' { $$ = dispatch($1, $3, nil_Expressions()); }
+    | expr '.' OBJECTID '(' expr_list ')' { $$ = dispatch($1, $3, $5); }
+    /* TODO: static dispatch */
+    ;
+
+    expr_list
+    : expr_list ',' expr { $$ = append_Expressions($1, single_Expressions($3)); }
+    | expr { $$ = single_Expressions($1); }
     ;
 
     let_expr

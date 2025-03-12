@@ -16,6 +16,8 @@ class MultipleMethods {
     single_arg(a: Int): Int { 42 };
     -- method with arguments
     multiple_args(a : Int, b : Int, c : Int): Int { 42 };
+    -- takes Custom class
+    custom_arg(a: SingleMethod): Int { 42 };
 };
 
 -- attribute
@@ -29,6 +31,9 @@ class Attributes {
 -- expression
 class Expressions {
     assign_expr(): Int { a <- 1 };
+    dispatch(s : SingleMethod): Int { s.no_args() };
+    dispatch2(m : MultipleMethods): Int { m.single_arg(42) };
+    dispatch3(m : MultipleMethods): Int { m.multiple_args(42, 21, 0) };
     single_let(): Int { let a : Int in (42) };
     nested_let(): Int { let a : Int, b : Int, c : Int in (42) };
     plus(a : Int, b : Int): Int { a + b };
