@@ -29,6 +29,8 @@ class Attributes {
 -- expression
 class Expressions {
     assign_expr(): Int { a <- 1 };
+    single_let(): Int { let a : Int in (42) };
+    nested_let(): Int { let a : Int, b : Int, c : Int in (42) };
     plus(a : Int, b : Int): Int { a + b };
     boolean_complement(a : Boolean): Boolean { not a };
     parentheses(): Int { (42) };

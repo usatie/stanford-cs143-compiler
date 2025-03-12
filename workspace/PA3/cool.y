@@ -143,6 +143,7 @@
     %type <formal> formal
     %type <expression> expr
     %type <expression> let_expr
+    %type <expression> nested_let
 
     
     /* Precedence declarations go here. */
@@ -213,11 +214,17 @@
     ;
 
     let_expr
-    : LET OBJECTID ':' TYPEID IN expr { $$ = let($2, $4, no_expr(), $6); }
-    | LET OBJECTID ':' TYPEID ASSIGN expr IN expr { $$ = let($2, $4, $6, $8); }
-    /* TODO: multiple type_declarations */
+    : LET nested_let { $$ = $2; }
     ;
     
+    nested_let
+    : OBJECTID ':' TYPEID ',' nested_let { $$ = let($1, $3, no_expr(), $5); }
+    | OBJECTID ':' TYPEID ASSIGN expr ',' nested_let { $$ = let($1, $3, $5, $7); }
+    | OBJECTID ':' TYPEID IN expr { $$ = let($1, $3, no_expr(), $5); }
+    | OBJECTID ':' TYPEID ASSIGN expr IN expr { $$ = let($1, $3, $5, $7); }
+    ;
+
+
     /* end of grammar */
     %%
     
