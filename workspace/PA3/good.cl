@@ -30,6 +30,13 @@ class Attributes {
 
 -- expression
 class Expressions {
+    -- constant
+    int_const(): Int { 42 };
+    str_const(): String { "Hello, world\n" };
+    boolean_const_true(): Boolean { true };
+    boolean_const_false(): Boolean { false };
+    -- identifier
+    idenfier(x : Int): Int { x };
     -- assignment
     assign_expr(): Int { a <- 1 };
     -- dispatch
@@ -66,12 +73,6 @@ class Expressions {
     -- let
     single_let(): Int { let a : Int in (42) };
     nested_let(): Int { let a : Int, b : Int, c : Int in (42) };
-    object(a : Int): Int { a };
-    -- constant
-    int(): Int { 42 };
-    str(): String { "Hello, world\n" };
-    boolean_true(): Boolean { true };
-    boolean_false(): Boolean { false };
 };
 
 class MoreExpressions inherits Expressions {

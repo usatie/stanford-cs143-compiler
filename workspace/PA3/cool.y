@@ -144,6 +144,7 @@
     %type <expressions> expr_list
     %type <expression> expr
     %type <expression> constant
+    %type <expression> identifier
     %type <expression> assignment
     %type <expression> dispatch
     %type <expression> conditional
@@ -218,9 +219,9 @@
 
     /* Expression */
     expr
-    : OBJECTID { $$ = object($1); }
-    | let { $$ = $1; }
+    : let { $$ = $1; }
     | constant { $$ = $1; }
+    | identifier { $$ = $1; }
     | assignment { $$ = $1; }
     | dispatch { $$ = $1; }
     | conditional { $$ = $1; }
@@ -237,9 +238,15 @@
     : BOOL_CONST { $$ = bool_const($1); }
     | STR_CONST { $$ = string_const($1); }
     | INT_CONST { $$ = int_const($1);  }
+    ;
+
+    identifier
+    : OBJECTID { $$ = object($1); }
+    ;
 
     assignment
     : OBJECTID ASSIGN expr { $$ = assign($1, $3); }
+    ;
 
     dispatch
     : OBJECTID '(' ')' { $$ = dispatch(object((Symbol)idtable.add_string("self")), $1, nil_Expressions()); }
