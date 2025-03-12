@@ -10,7 +10,7 @@ class SingleMethod {
     no_args(): Int { 42 };
 };
 
--- class with methods
+-- method
 class MultipleMethods {
     -- method with argument
     single_arg(a: Int): Int { 42 };
@@ -18,6 +18,15 @@ class MultipleMethods {
     multiple_args(a : Int, b : Int, c : Int): Int { 42 };
 };
 
+-- attribute
+class Attributes {
+    -- attribute
+    a : Int;
+    -- attribute with initial value
+    b : Int <- 42;
+};
+
+-- expression
 class Expressions {
     assign_expr(): Int { a <- 1 };
     plus(a : Int, b : Int): Int { a + b };

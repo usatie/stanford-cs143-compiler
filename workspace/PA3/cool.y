@@ -186,7 +186,8 @@
     ;
 
     attribute
-    : /* TODO */
+    : OBJECTID ':' TYPEID
+    | OBJECTID ':' TYPEID ASSIGN expr
     ;
 
     /* Formal */
