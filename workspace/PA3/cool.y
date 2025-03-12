@@ -137,6 +137,10 @@
     /* You will want to change the following line. */
     %type <features> feature_list
     %type <feature> feature
+    %type <feature> method
+    %type <feature> attribute
+    %type <formals> formal_list
+    %type <formal> formal
     %type <expression> expr
 
     
@@ -173,9 +177,25 @@
     ;
 
     /* Feature */
-    feature
+    feature : method | attribute;
+
+    method
     : OBJECTID '(' ')' ':' TYPEID '{' expr '}' { $$ = method($1, nil_Formals(), $5, $7); }
+    | OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}' { $$ = method($1, $3, $6, $8); }
     ;
+
+    attribute
+    : /* TODO */
+    ;
+
+    /* Formal */
+    formal_list
+    : formal { nil_Formals(); }
+    | formal ',' formal_list { nil_Formals(); }
+    ;
+
+    formal
+    : OBJECTID ':' TYPEID { /* TODO */ }
 
     /* Expression */
     expr
