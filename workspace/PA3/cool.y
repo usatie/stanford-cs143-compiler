@@ -154,7 +154,9 @@
     %type <expression> block
     %type <expressions> block_expr_list
     %type <expression> let
-    %type <expression> nested_let
+    %type <expression> binding_list
+    %type <expression> initialization
+    %type <expression> body
     %type <expression> case_expr
     %type <cases> case_list
     %type <case_> case
@@ -314,14 +316,21 @@
 
     /* 7.8 Let */
     let
-    : LET nested_let { $$ = $2; }
+    : LET binding_list { $$ = $2; }
     ;
 
-    nested_let
-    : OBJECTID ':' TYPEID ',' nested_let { $$ = let($1, $3, no_expr(), $5); }
-    | OBJECTID ':' TYPEID ASSIGN expr ',' nested_let { $$ = let($1, $3, $5, $7); }
-    | OBJECTID ':' TYPEID IN expr { $$ = let($1, $3, no_expr(), $5); }
-    | OBJECTID ':' TYPEID ASSIGN expr IN expr { $$ = let($1, $3, $5, $7); }
+    binding_list
+    : OBJECTID ':' TYPEID initialization body { $$ = let($1, $3, $4, $5); }
+    ;
+
+    initialization
+    : { $$ = no_expr(); }
+    | ASSIGN expr { $$ = $2; }
+    ;
+
+    body
+    : ',' binding_list { $$ = $2; }
+	| IN expr { $$ = $2; }
     ;
 
     /* 7.9 Case */
