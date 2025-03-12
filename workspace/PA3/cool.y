@@ -150,6 +150,7 @@
     %type <expression> conditional
     %type <expression> loop
     %type <expression> block
+    %type <expressions> block_expr_list
     %type <expression> let
     %type <expression> nested_let
     %type <expression> case_expr
@@ -226,6 +227,7 @@
     | dispatch { $$ = $1; }
     | conditional { $$ = $1; }
     | loop { $$ = $1; }
+    | block { $$ = $1; }
     | case_expr { $$ = $1; }
     | new { $$ = $1; }
     | isvoid { $$ = $1; }
@@ -268,6 +270,15 @@
 
     loop
     : WHILE expr LOOP expr POOL { $$ = loop($2, $4); }
+    ;
+
+    block
+    : '{' block_expr_list '}' { $$ = block($2); }
+    ;
+
+    block_expr_list
+    : block_expr_list expr ';' { $$ = append_Expressions($1, single_Expressions($2)); }
+    | expr ';' { $$ = single_Expressions($1); }
     ;
 
     case_expr

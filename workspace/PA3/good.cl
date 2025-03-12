@@ -50,6 +50,9 @@ class Expressions {
     conditional(a: Int, b: Int, cond: Boolean): Int { if cond then a else b fi };
     -- loop
     simple_loop(): Int { while true loop 42 pool };
+    -- block
+    block_single(): Int { { 42; } };
+    block_multiple(): Int { { 1; 2; 3; } };
     -- case
     single_case(): Int { case e of x: C => 1; esac };
     multiple_cases(): Int { case e of x: C => 1; y: D => 0; esac };
