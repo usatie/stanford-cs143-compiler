@@ -139,9 +139,11 @@
     %type <feature> feature
     %type <feature> method
     %type <feature> attribute
+    %type <formals> formal_list
     %type <formals> non_empty_formal_list
     %type <formal> formal
-    %type <expressions> expr_list
+    %type <expressions> dispatch_expr_list
+    %type <expressions> non_empty_dispatch_expr_list
     %type <expression> expr
     %type <expression> constant
     %type <expression> identifier
@@ -200,8 +202,7 @@
     feature : method | attribute;
 
     method
-    : OBJECTID '(' ')' ':' TYPEID '{' expr '}' { $$ = method($1, nil_Formals(), $5, $7); }
-    | OBJECTID '(' non_empty_formal_list ')' ':' TYPEID '{' expr '}' { $$ = method($1, $3, $6, $8); }
+    : OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}' { $$ = method($1, $3, $6, $8); }
     ;
 
     attribute
@@ -210,6 +211,10 @@
     ;
 
     /* Formal */
+    formal_list
+    : { $$ = nil_Formals(); }
+    | non_empty_formal_list
+
     non_empty_formal_list
     : formal { $$ = single_Formals($1); }
     | non_empty_formal_list ',' formal { $$ = append_Formals($1, single_Formals($3)); }
@@ -250,17 +255,21 @@
     : OBJECTID ASSIGN expr { $$ = assign($1, $3); }
     ;
 
+    /* Dispatch has three forms: common dispatch, self dispatch, parent dispatch */
     dispatch
-    : OBJECTID '(' ')' { $$ = dispatch(object((Symbol)idtable.add_string("self")), $1, nil_Expressions()); }
-    | OBJECTID '(' expr_list ')' { $$ = dispatch(object(idtable.add_string("self")), $1, $3); }
-    | expr '.' OBJECTID '(' ')' { $$ = dispatch($1, $3, nil_Expressions()); }
-    | expr '.' OBJECTID '(' expr_list ')' { $$ = dispatch($1, $3, $5); }
-    | expr '@' TYPEID '.' OBJECTID '(' ')' { $$ = static_dispatch($1, $3, $5, nil_Expressions()); }
-    | expr '@' TYPEID '.' OBJECTID '(' expr_list ')' { $$ = static_dispatch($1, $3, $5, $7); }
+    : expr '.' OBJECTID '(' dispatch_expr_list ')' { $$ = dispatch($1, $3, $5); }
+    | OBJECTID '(' dispatch_expr_list ')' { $$ = dispatch(object(idtable.add_string("self")), $1, $3); }
+    | expr '@' TYPEID '.' OBJECTID '(' dispatch_expr_list ')' { $$ = static_dispatch($1, $3, $5, $7); }
     ;
 
-    expr_list
-    : expr_list ',' expr { $$ = append_Expressions($1, single_Expressions($3)); }
+    /* Dispatch expression list may be empty. */
+    dispatch_expr_list
+    : { $$ = nil_Expressions(); }
+    | non_empty_dispatch_expr_list { $$ = $1; }
+
+    /* Non empty dispatch expression list. */
+    non_empty_dispatch_expr_list
+    : non_empty_dispatch_expr_list ',' expr { $$ = append_Expressions($1, single_Expressions($3)); }
     | expr { $$ = single_Expressions($1); }
     ;
 
