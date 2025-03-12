@@ -155,7 +155,7 @@
     %type <cases> case_list
     %type <case_> case
     %type <expression> new
-    %type <expression> is_void
+    %type <expression> isvoid
     %type <expression> arithmetic_op
     %type <expression> comparision_op
 
@@ -227,8 +227,9 @@
     | dispatch { $$ = $1; }
     | conditional { $$ = $1; }
     | loop { $$ = $1; }
-	| case_expr { $$ = $1; }
+    | case_expr { $$ = $1; }
     | new { $$ = $1; }
+    | isvoid { $$ = $1; }
     ;
 
     constant
@@ -271,6 +272,10 @@
 
     new
     : NEW TYPEID { $$ = new_($2); }
+
+    isvoid
+    : ISVOID expr { $$ = isvoid($2); }
+
 
     let
     : LET nested_let { $$ = $2; }
