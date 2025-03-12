@@ -50,17 +50,22 @@ class Expressions {
     new_(): Int { new Int };
     -- isvoid
     isvoid_(x : Int): Int { isvoid x };
-    -- arithmetic
+    -- arithmetic op
     parentheses(): Int { (42) };
     plus(a : Int, b : Int): Int { a + b };
     sub(a : Int, b : Int): Int { a - b };
     mul(a : Int, b : Int): Int { a * b };
     divide(a : Int, b : Int): Int { a / b };
+    -- comparison op
+    lt(a : Int, b : Int): Int { a < b };
+    eq(a : Int, b : Int): Int { a = b };
+    leq(a : Int, b : Int): Int { a <= b };
+    -- unary op
     integer_complement(x : Int): Int { ~x };
+    boolean_complement(a : Boolean): Boolean { not a };
     -- let
     single_let(): Int { let a : Int in (42) };
     nested_let(): Int { let a : Int, b : Int, c : Int in (42) };
-    boolean_complement(a : Boolean): Boolean { not a };
     object(a : Int): Int { a };
     -- constant
     int(): Int { 42 };

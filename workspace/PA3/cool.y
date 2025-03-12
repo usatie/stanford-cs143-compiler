@@ -158,6 +158,7 @@
     %type <expression> isvoid
     %type <expression> arithmetic_op
     %type <expression> comparision_op
+    %type <expression> unary_op
 
 
     
@@ -218,7 +219,6 @@
     /* Expression */
     expr
     : OBJECTID { $$ = object($1); }
-    | NOT expr { $$ = comp($2); }
     | let { $$ = $1; }
     | constant { $$ = $1; }
     | assignment { $$ = $1; }
@@ -229,6 +229,8 @@
     | new { $$ = $1; }
     | isvoid { $$ = $1; }
     | arithmetic_op { $$ = $1; }
+    | comparision_op { $$ = $1; }
+    | unary_op { $$ = $1; }
     ;
 
     constant
@@ -255,25 +257,32 @@
 
     conditional
     : IF expr THEN expr ELSE expr FI { $$ = cond($2, $4, $6); }
+    ;
 
     loop
     : WHILE expr LOOP expr POOL { $$ = loop($2, $4); }
+    ;
 
     case_expr
     : CASE expr OF case_list ESAC { $$ = typcase($2, $4); }
+    ;
 
     case_list
     : case { $$ = single_Cases($1); }
     | case_list case { $$ = append_Cases($1, single_Cases($2)); }
+    ;
 
     case
     : OBJECTID ':' TYPEID DARROW expr ';' { $$ = branch($1, $3, $5); }
+    ;
 
     new
     : NEW TYPEID { $$ = new_($2); }
+    ;
 
     isvoid
     : ISVOID expr { $$ = isvoid($2); }
+    ;
 
     arithmetic_op
     : '(' expr ')' { $$ = $2; }
@@ -281,7 +290,18 @@
     | expr '-' expr { $$ = sub($1, $3); }
     | expr '*' expr { $$ = mul($1, $3); }
     | expr '/' expr { $$ = divide($1, $3); }
-    | '~' expr { $$ = comp($2); }
+    ;
+
+    comparision_op
+    : expr '<' expr { $$ = lt($1, $3); }
+    | expr '=' expr { $$ = eq($1, $3); }
+    | expr LE expr { $$ = leq($1, $3); }
+    ;
+
+    unary_op
+    : '~' expr { $$ = comp($2); }
+    | NOT expr { $$ = comp($2); }
+    ;
 
     let
     : LET nested_let { $$ = $2; }
