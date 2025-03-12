@@ -160,9 +160,7 @@
     %type <case_> case
     %type <expression> new
     %type <expression> isvoid
-    %type <expression> arithmetic_op
-    %type <expression> comparision_op
-    %type <expression> unary_op
+    %type <expression> arithmetic_and_comparison_op
 
 
     
@@ -176,6 +174,7 @@
     program    : class_list    { @$ = @1; ast_root = program($1); }
     ;
     
+    /* 3. Classes */
     class_list
     : class            /* single class */
     { $$ = single_Classes($1);
@@ -201,13 +200,15 @@
     /* Feature */
     feature : method | attribute;
 
-    method
-    : OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}' { $$ = method($1, $3, $6, $8); }
-    ;
-
+    /* 5. Attributes */
     attribute
     : OBJECTID ':' TYPEID { $$ = attr($1, $3, no_expr()); }
     | OBJECTID ':' TYPEID ASSIGN expr { $$ = attr($1, $3, $5); }
+    ;
+
+    /* 6. Methods */
+    method
+    : OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}' { $$ = method($1, $3, $6, $8); }
     ;
 
     /* Formal */
@@ -223,39 +224,43 @@
     formal
     : OBJECTID ':' TYPEID { $$ = formal($1, $3); }
 
-    /* Expression */
+    /* 7. Expression */
     expr
-    : let { $$ = $1; }
-    | constant { $$ = $1; }
-    | identifier { $$ = $1; }
-    | assignment { $$ = $1; }
+    : assignment { $$ = $1; }
     | dispatch { $$ = $1; }
     | conditional { $$ = $1; }
     | loop { $$ = $1; }
     | block { $$ = $1; }
+    | let { $$ = $1; }
     | case_expr { $$ = $1; }
     | new { $$ = $1; }
     | isvoid { $$ = $1; }
-    | arithmetic_op { $$ = $1; }
-    | comparision_op { $$ = $1; }
-    | unary_op { $$ = $1; }
+    | arithmetic_and_comparison_op { $$ = $1; }
+    | '(' expr ')' { $$ = $2; }
+    | identifier { $$ = $1; }
+    | constant { $$ = $1; }
     ;
 
+    /* 7.1 Constants */
     constant
     : BOOL_CONST { $$ = bool_const($1); }
     | STR_CONST { $$ = string_const($1); }
     | INT_CONST { $$ = int_const($1);  }
     ;
 
+    /* 7.2 Identifiers */
     identifier
     : OBJECTID { $$ = object($1); }
     ;
 
+    /* 7.3 Assignments */
     assignment
     : OBJECTID ASSIGN expr { $$ = assign($1, $3); }
     ;
 
-    /* Dispatch has three forms: common dispatch, self dispatch, parent dispatch */
+    /* 7.4 Dispatch
+     * common dispatch, self dispatch, parent dispatch
+     */
     dispatch
     : expr '.' OBJECTID '(' dispatch_expr_list ')' { $$ = dispatch($1, $3, $5); }
     | OBJECTID '(' dispatch_expr_list ')' { $$ = dispatch(object(idtable.add_string("self")), $1, $3); }
@@ -273,14 +278,17 @@
     | expr { $$ = single_Expressions($1); }
     ;
 
+    /* 7.5 Conditionals */
     conditional
     : IF expr THEN expr ELSE expr FI { $$ = cond($2, $4, $6); }
     ;
 
+    /* 7.6 Loops */
     loop
     : WHILE expr LOOP expr POOL { $$ = loop($2, $4); }
     ;
 
+    /* 7.7 Blocks */
     block
     : '{' block_expr_list '}' { $$ = block($2); }
     ;
@@ -290,6 +298,19 @@
     | expr ';' { $$ = single_Expressions($1); }
     ;
 
+    /* 7.8 Let */
+    let
+    : LET nested_let { $$ = $2; }
+    ;
+
+    nested_let
+    : OBJECTID ':' TYPEID ',' nested_let { $$ = let($1, $3, no_expr(), $5); }
+    | OBJECTID ':' TYPEID ASSIGN expr ',' nested_let { $$ = let($1, $3, $5, $7); }
+    | OBJECTID ':' TYPEID IN expr { $$ = let($1, $3, no_expr(), $5); }
+    | OBJECTID ':' TYPEID ASSIGN expr IN expr { $$ = let($1, $3, $5, $7); }
+    ;
+
+    /* 7.9 Case */
     case_expr
     : CASE expr OF case_list ESAC { $$ = typcase($2, $4); }
     ;
@@ -303,42 +324,27 @@
     : OBJECTID ':' TYPEID DARROW expr ';' { $$ = branch($1, $3, $5); }
     ;
 
+    /* 7.10 New */
     new
     : NEW TYPEID { $$ = new_($2); }
     ;
 
+    /* 7.11 Isvoid */
     isvoid
     : ISVOID expr { $$ = isvoid($2); }
     ;
 
-    arithmetic_op
-    : '(' expr ')' { $$ = $2; }
-    | expr '+' expr { $$ = plus($1, $3); }
+    /* 7.12 Arithmetic and Comparison Operations */
+    arithmetic_and_comparison_op
+    : expr '+' expr { $$ = plus($1, $3); }
     | expr '-' expr { $$ = sub($1, $3); }
     | expr '*' expr { $$ = mul($1, $3); }
     | expr '/' expr { $$ = divide($1, $3); }
-    ;
-
-    comparision_op
-    : expr '<' expr { $$ = lt($1, $3); }
+    | expr '<' expr { $$ = lt($1, $3); }
     | expr '=' expr { $$ = eq($1, $3); }
     | expr LE expr { $$ = leq($1, $3); }
-    ;
-
-    unary_op
-    : '~' expr { $$ = comp($2); }
+    | '~' expr { $$ = comp($2); }
     | NOT expr { $$ = comp($2); }
-    ;
-
-    let
-    : LET nested_let { $$ = $2; }
-    ;
-    
-    nested_let
-    : OBJECTID ':' TYPEID ',' nested_let { $$ = let($1, $3, no_expr(), $5); }
-    | OBJECTID ':' TYPEID ASSIGN expr ',' nested_let { $$ = let($1, $3, $5, $7); }
-    | OBJECTID ':' TYPEID IN expr { $$ = let($1, $3, no_expr(), $5); }
-    | OBJECTID ':' TYPEID ASSIGN expr IN expr { $$ = let($1, $3, $5, $7); }
     ;
 
 
