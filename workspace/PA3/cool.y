@@ -163,10 +163,23 @@
     %type <expression> arithmetic_and_comparison_op
 
 
-    
     /* Precedence declarations go here. */
-    
-    
+    /* 11.1 Precedence
+     * All binary operations are left-associative, with the exception of
+     * assignment, which is right-associative, and the three comparison
+     * operations, which do not associate.
+    */
+    %right ASSIGN
+    %nonassoc NOT
+    %nonassoc LE '<' '='
+    %left '+' '-'
+    %left '*' '/'
+    %nonassoc ISVOID
+    %nonassoc '~'
+    %nonassoc '@'
+    %nonassoc '.'
+
+
     %%
     /* 
     Save the root of the abstract syntax tree in a global variable.
