@@ -139,7 +139,7 @@
     %type <feature> feature
     %type <feature> method
     %type <feature> attribute
-    %type <formals> formal_list
+    %type <formals> non_empty_formal_list
     %type <formal> formal
     %type <expression> expr
     %type <expression> let_expr
@@ -182,7 +182,7 @@
 
     method
     : OBJECTID '(' ')' ':' TYPEID '{' expr '}' { $$ = method($1, nil_Formals(), $5, $7); }
-    | OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}' { $$ = method($1, $3, $6, $8); }
+    | OBJECTID '(' non_empty_formal_list ')' ':' TYPEID '{' expr '}' { $$ = method($1, $3, $6, $8); }
     ;
 
     attribute
@@ -191,9 +191,9 @@
     ;
 
     /* Formal */
-    formal_list
+    non_empty_formal_list
     : formal { $$ = single_Formals($1); }
-    | formal ',' formal_list { $$ = append_Formals($3, single_Formals($1)); }
+    | formal ',' non_empty_formal_list { $$ = append_Formals($3, single_Formals($1)); }
     ;
 
     formal
