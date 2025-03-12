@@ -41,6 +41,8 @@ class Expressions {
     dispatch_self3(): Int { plus(12, 34) };
     -- conditional
     conditional(a: Int, b: Int, cond: Boolean): Int { if cond then a else b fi };
+    -- loop
+    simple_loop(): Int { while true loop 42 pool };
     -- let
     single_let(): Int { let a : Int in (42) };
     nested_let(): Int { let a : Int, b : Int, c : Int in (42) };

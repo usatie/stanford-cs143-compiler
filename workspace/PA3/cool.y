@@ -224,6 +224,7 @@
     | assignment { $$ = $1; }
     | dispatch { $$ = $1; }
     | conditional { $$ = $1; }
+    | loop { $$ = $1; }
     ;
 
     constant
@@ -250,6 +251,9 @@
 
     conditional
     : IF expr THEN expr ELSE expr FI { $$ = cond($2, $4, $6); }
+
+    loop
+    : WHILE expr LOOP expr POOL { $$ = loop($2, $4); }
 
     let
     : LET nested_let { $$ = $2; }
