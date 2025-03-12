@@ -356,7 +356,7 @@
     | expr '<' expr { $$ = lt($1, $3); }
     | expr '=' expr { $$ = eq($1, $3); }
     | expr LE expr { $$ = leq($1, $3); }
-    | '~' expr { $$ = comp($2); }
+    | '~' expr { $$ = neg($2); }
     | NOT expr { $$ = comp($2); }
     ;
 
