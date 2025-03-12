@@ -197,6 +197,7 @@
     | class_list class    /* several classes */
     { $$ = append_Classes($1,single_Classes($2)); 
     parse_results = $$; }
+    | error class_list { yyerrok; $$ = $2; } /* Simple error recovery for classes */
     ;
     
     /* If no parent is specified, the class inherits from the Object class. */
@@ -210,6 +211,7 @@
     feature_list :
     { $$ = nil_Features(); }
     | feature_list feature ';' { $$ = append_Features($1, single_Features($2)); }
+    | error ';' feature_list{ yyerrok; $$ = $3; } /* Simple error recovery for features */
     ;
 
     /* Feature */
@@ -311,7 +313,7 @@
     block_expr_list
     : block_expr_list expr ';' { $$ = append_Expressions($1, single_Expressions($2)); }
     | expr ';' { $$ = single_Expressions($1); }
-    | error ';' { yyerrok; } /* simple error recovery for errors in an expression inside a block */
+    | error ';' block_expr_list { yyerrok; $$ = $3; } /* simple error recovery for errors in an expression inside a block */
     ;
 
     /* 7.8 Let */
@@ -330,7 +332,7 @@
 
     body
     : ',' binding_list { $$ = $2; }
-	| IN expr { $$ = $2; }
+    | IN expr { $$ = $2; }
     ;
 
     /* 7.9 Case */
