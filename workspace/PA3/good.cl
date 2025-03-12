@@ -43,6 +43,9 @@ class Expressions {
     conditional(a: Int, b: Int, cond: Boolean): Int { if cond then a else b fi };
     -- loop
     simple_loop(): Int { while true loop 42 pool };
+    -- case
+    single_case(): Int { case e of x: C => 1; esac };
+    multiple_cases(): Int { case e of x: C => 1; y: D => 0; esac };
     -- let
     single_let(): Int { let a : Int in (42) };
     nested_let(): Int { let a : Int, b : Int, c : Int in (42) };

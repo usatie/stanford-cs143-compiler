@@ -151,7 +151,9 @@
     %type <expression> block
     %type <expression> let
     %type <expression> nested_let
-    %type <expression> case
+    %type <expression> case_expr
+    %type <cases> case_list
+    %type <case_> case
     %type <expression> new
     %type <expression> is_void
     %type <expression> arithmetic_op
@@ -225,6 +227,7 @@
     | dispatch { $$ = $1; }
     | conditional { $$ = $1; }
     | loop { $$ = $1; }
+	| case_expr { $$ = $1; }
     ;
 
     constant
@@ -254,6 +257,16 @@
 
     loop
     : WHILE expr LOOP expr POOL { $$ = loop($2, $4); }
+
+    case_expr
+    : CASE expr OF case_list ESAC { $$ = typcase($2, $4); }
+
+    case_list
+	: case { $$ = single_Cases($1); }
+	| case_list case { $$ = append_Cases($1, single_Cases($2)); }
+
+    case
+	: OBJECTID ':' TYPEID DARROW expr ';' { $$ = branch($1, $3, $5); }
 
     let
     : LET nested_let { $$ = $2; }
