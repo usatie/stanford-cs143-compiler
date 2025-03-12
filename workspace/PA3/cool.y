@@ -212,7 +212,7 @@
     /* Formal */
     non_empty_formal_list
     : formal { $$ = single_Formals($1); }
-    | formal ',' non_empty_formal_list { $$ = append_Formals($3, single_Formals($1)); }
+    | non_empty_formal_list ',' formal { $$ = append_Formals($1, single_Formals($3)); }
     ;
 
     formal
