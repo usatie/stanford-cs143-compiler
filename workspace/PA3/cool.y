@@ -143,6 +143,7 @@
     %type <formal> formal
     %type <expressions> expr_list
     %type <expression> expr
+    %type <expression> constant
     %type <expression> dispatch
     %type <expression> let_expr
     %type <expression> nested_let
@@ -204,17 +205,20 @@
 
     /* Expression */
     expr
-    : BOOL_CONST { $$ = bool_const($1); }
-    | STR_CONST { $$ = string_const($1); }
-    | INT_CONST { $$ = int_const($1);  }
-    | OBJECTID { $$ = object($1); }
+    : OBJECTID { $$ = object($1); }
     | NOT expr { $$ = comp($2); }
     | '(' expr ')' { $$ = $2; }
     | expr '+' expr { $$ = plus($1, $3); }
     | let_expr { $$ = $1; }
     | dispatch { $$ = $1; }
     | OBJECTID ASSIGN expr { $$ = assign($1, $3); }
+	| constant { $$ = $1; }
     ;
+
+    constant
+    : BOOL_CONST { $$ = bool_const($1); }
+    | STR_CONST { $$ = string_const($1); }
+    | INT_CONST { $$ = int_const($1);  }
 
     dispatch
     : OBJECTID '(' ')' { $$ = dispatch(object((Symbol)idtable.add_string("self")), $1, nil_Expressions()); }
