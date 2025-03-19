@@ -7,7 +7,7 @@ AR= gar
 ARCHIVE_NEW= -cr
 RANLIB= gar -qs
 
-SRC= semant.cc semant.h cool-tree.h cool-tree.handcode.h good.cl bad.cl README
+SRC= semant.cc semant.h cool-tree.h cool-tree.handcode.h good.cl bad.cl README Makefile
 CSRC= semant-phase.cc symtab_example.cc  handle_flags.cc  ast-lex.cc ast-parse.cc utilities.cc stringtab.cc dumptype.cc tree.cc cool-tree.cc
 TSRC= mycoolc mysemant cool-tree.aps
 CGEN=
@@ -70,6 +70,9 @@ ${TSRC} ${CSRC}:
 
 ${HSRC}:
 	-ln -s ${CLASSDIR}/include/PA${ASSN}/$@ $@
+
+${SRC}:
+	cp ${CLASSDIR}/assignments/PA${ASSN}/$@ $@
 
 clean :
 	-rm -f ${OUTPUT} *.s core ${OBJS} semant cgen symtab_example parser lexer *~ *.a *.o

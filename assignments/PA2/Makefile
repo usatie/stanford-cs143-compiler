@@ -4,7 +4,7 @@ CLASS= cs143
 CLASSDIR= ../..
 LIB= -lfl
 
-SRC= cool.flex test.cl README 
+SRC= cool.flex test.cl README Makefile
 CSRC= lextest.cc utilities.cc stringtab.cc handle_flags.cc
 TSRC= mycoolc
 HSRC= 
@@ -55,6 +55,9 @@ ${TSRC} ${CSRC}:
 
 ${HSRC}:
 	-ln -s ${CLASSDIR}/include/PA${ASSN}/$@ $@
+
+${SRC}:
+	cp ${CLASSDIR}/assignments/PA${ASSN}/$@ $@
 
 clean :
 	-rm -f ${OUTPUT} *.s core ${OBJS} lexer cool-lex.cc *~ parser cgen semant
