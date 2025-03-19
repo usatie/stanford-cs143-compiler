@@ -1,3 +1,9 @@
 *.d
 *.swp
 *.o
+grading/
+
+# Ignore executables
+mycoolc
+mysemant
+symtab_example
