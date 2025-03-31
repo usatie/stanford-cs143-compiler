@@ -86,25 +86,35 @@ static void initialize_constants(void)
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
 
     /* Fill this in */
-    SymbolTable<char *,int> *classname_table = new SymbolTable<char *, int>();
+    class_table = new SymbolTable<char *, Class__class>();
+	class_table->enterscope();
 
-	/* pass 1: install basic classes */
-	classname_table->enterscope();
+	/* install basic classes */
+	install_basic_classes();
+
+	/* Check Basic class inheritance */
+	if (semant_debug) {
+	  std::cout << "Checking basic class inheritance..." << std::endl;
+	}
    for(int i = classes->first(); classes->more(i); i = classes->next(i)) {
      Symbol name = classes->nth(i)->get_name();
-	 if (classname_table->lookup(name->get_string()) != NULL) {
+	 if (basic_class_table->lookup(name->get_string()) != NULL) {
+	   semant_error(classes->nth(i)) << "Redefinition of basic class " << name << std::endl;
+	 }
+   }
+
+	/* Install user-defined classes */
+   for(int i = classes->first(); classes->more(i); i = classes->next(i)) {
+     Symbol name = classes->nth(i)->get_name();
+	 if (class_table->lookup(name->get_string()) != NULL) {
 	   semant_error(classes->nth(i)) << "Class " << name << " was previously defined." << std::endl;
 	 }
-	 classname_table->addid(name->get_string(), new int(i));
+	 class_table->addid(name->get_string(), classes->nth(i));
    }
 
 	/* TODO: Check Cyclic inheritance */
 	if (semant_debug) {
 	  std::cout << "Checking cyclic inheritance..." << std::endl;
-	}
-	/* TODO: Check Basic class inheritance */
-	if (semant_debug) {
-	  std::cout << "Checking basic class inheritance..." << std::endl;
 	}
 	/* TODO: Check Undefined class inheritance */
 	if (semant_debug) {
@@ -212,6 +222,13 @@ void ClassTable::install_basic_classes() {
 						      Str, 
 						      no_expr()))),
 	       filename);
+
+	/* Add basic classes to the class table */
+    basic_class_table = new SymbolTable<char *, Class__class>();
+	basic_class_table->enterscope();
+	basic_class_table->addid(Object->get_string(), Object_class);
+	basic_class_table->addid(IO->get_string(), IO_class);
+	basic_class_table->addid(Int->get_string(), Int_class);
 }
 
 ////////////////////////////////////////////////////////////////////
