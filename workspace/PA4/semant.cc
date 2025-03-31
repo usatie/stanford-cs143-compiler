@@ -86,6 +86,17 @@ static void initialize_constants(void)
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
 
     /* Fill this in */
+    SymbolTable<char *,int> *classname_table = new SymbolTable<char *, int>();
+
+	/* pass 1: install basic classes */
+	classname_table->enterscope();
+   for(int i = classes->first(); classes->more(i); i = classes->next(i)) {
+     Symbol name = classes->nth(i)->get_name();
+	 if (classname_table->lookup(name->get_string()) != NULL) {
+	   semant_error(classes->nth(i)) << "Class " << name << " was previously defined." << std::endl;
+	 }
+	 classname_table->addid(name->get_string(), new int(i));
+   }
 
 	/* TODO: Check Cyclic inheritance */
 	if (semant_debug) {
