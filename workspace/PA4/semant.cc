@@ -87,6 +87,19 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
 
     /* Fill this in */
 
+	/* TODO: Check Cyclic inheritance */
+	if (semant_debug) {
+	  std::cout << "Checking cyclic inheritance..." << std::endl;
+	}
+	/* TODO: Check Basic class inheritance */
+	if (semant_debug) {
+	  std::cout << "Checking basic class inheritance..." << std::endl;
+	}
+	/* TODO: Check Undefined class inheritance */
+	if (semant_debug) {
+	  std::cout << "Checking undefined class inheritance..." << std::endl;
+	}
+
 }
 
 void ClassTable::install_basic_classes() {
@@ -222,7 +235,24 @@ ostream& ClassTable::semant_error()
     return error_stream;
 } 
 
+////////////////////////////////////////////////////////////////////
+//
+// TODO: check_name_and_scope and check_type
+//
+///////////////////////////////////////////////////////////////////
+void ClassTable::check_name_and_scope()
+{
+	if (semant_debug) {
+	  std::cout << "Checking naming and scoping..." << std::endl;
+	}
+}
 
+void ClassTable::check_type()
+{
+	if (semant_debug) {
+	  std::cout << "Checking type system..." << std::endl;
+	}
+}
 
 /*   This is the entry point to the semantic checker.
 
@@ -245,6 +275,10 @@ void program_class::semant()
     ClassTable *classtable = new ClassTable(classes);
 
     /* some semantic analysis code may go here */
+	/* TODO: Check Naming and Scoping */
+	classtable->check_name_and_scope();
+	/* TODO: Type Checking */
+	classtable->check_type();
 
     if (classtable->errors()) {
 	cerr << "Compilation halted due to static semantic errors." << endl;
