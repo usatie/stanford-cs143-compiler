@@ -90,9 +90,19 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
   if (semant_debug) {
     std::cout << "Checking cyclic inheritance..." << std::endl;
   }
-  /* TODO: Check Undefined class inheritance */
+  /* Check Undefined class inheritance */
   if (semant_debug) {
     std::cout << "Checking undefined class inheritance..." << std::endl;
+  }
+  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
+    Symbol name = classes->nth(i)->get_name();
+    Symbol parent = classes->nth(i)->get_parent();
+    if (basic_class_table->lookup(parent->get_string()) == NULL &&
+        class_table->lookup(parent->get_string()) == NULL) {
+      semant_error(classes->nth(i))
+          << "Class " << name << " inherits from an undefined class " << parent
+          << std::endl;
+    }
   }
 }
 
