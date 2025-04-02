@@ -1,12 +1,12 @@
 #ifndef SEMANT_H_
 #define SEMANT_H_
 
-#include <assert.h>
-#include <iostream>  
 #include "cool-tree.h"
+#include "list.h"
 #include "stringtab.h"
 #include "symtab.h"
-#include "list.h"
+#include <assert.h>
+#include <iostream>
 
 #define TRUE 1
 #define FALSE 0
@@ -25,22 +25,22 @@ private:
   int semant_errors;
   void install_basic_classes();
   void install_user_defined_classes(Classes classes);
-  ostream& error_stream;
+  ostream &error_stream;
   InternalClassTable basic_class_table;
   InternalClassTable class_table;
 
 public:
   ClassTable(Classes);
   int errors() { return semant_errors; }
-  ostream& semant_error();
-  ostream& semant_error(Class_ c);
-  ostream& semant_error(Symbol filename, tree_node *t);
+  ostream &semant_error();
+  ostream &semant_error(Class_ c);
+  ostream &semant_error(Symbol filename, tree_node *t);
 
   void check_name_and_scope();
   void check_type();
-  bool has_cyclic_inheritance(Class_ orig, Class_ curr, InternalClassTable &class_table, InternalClassTable &cycle_table);
+  bool has_cyclic_inheritance(Class_ orig, Class_ curr,
+                              InternalClassTable &class_table,
+                              InternalClassTable &cycle_table);
 };
 
-
 #endif
-

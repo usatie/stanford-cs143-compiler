@@ -66,6 +66,10 @@ dotest:	semant good.cl bad.cl
 grade: semant
 	perl pa3-grading.pl
 
+.PHONY: fmt
+fmt:
+	clang-format semant.cc cool-tree.handcode.h semant.h -i
+
 ${LIBS}:
 	${CLASSDIR}/etc/link-object ${ASSN} $@
 
