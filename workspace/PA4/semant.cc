@@ -95,7 +95,6 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
 
   /* Install user-defined classes */
   class_table.enterscope();
-  // TODO: If we use separate scopes, separate tables may not be necessary
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
     Symbol name = classes->nth(i)->get_name();
     if (class_table.probe(name) != NULL) {
@@ -109,11 +108,11 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
     }
   }
 
-  /* Check Undefined class inheritance */
-  // Use a new scope to manage the already checked classes
+  /* Check Illegal Undefined/Basic class inheritance */
   if (semant_debug) {
-    std::cout << "Checking undefined class inheritance..." << std::endl;
+    std::cout << "Checking undefined/basic class inheritance..." << std::endl;
   }
+  // Use a new scope to manage the already checked classes
   class_table.enterscope();
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
     Symbol name = classes->nth(i)->get_name();
@@ -122,6 +121,14 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
     }
     class_table.addid(name, classes->nth(i));
     Symbol parent_sym = classes->nth(i)->get_parent_sym();
+    // The parent is illegal basic class
+    if (parent_sym == Bool || parent_sym == Int || parent_sym == Str) {
+      semant_error(classes->nth(i))
+          << "Class " << name << " cannot inherit class " << parent_sym << "."
+          << std::endl;
+      continue;
+    }
+    // The parent is undefined class
     auto parent = class_table.lookup(parent_sym);
     if (parent == NULL) {
       semant_error(classes->nth(i))
@@ -130,27 +137,6 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
       continue;
     }
     classes->nth(i)->set_parent(parent);
-  }
-  class_table.exitscope();
-
-  /* Check illegal Basic class inheritance */
-  if (semant_debug) {
-    std::cout << "Checking illegal basic class inheritance..." << std::endl;
-  }
-  // Use a new scope to manage the already checked classes
-  class_table.enterscope();
-  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
-    Symbol name = classes->nth(i)->get_name();
-    if (class_table.probe(name) != NULL) {
-      continue;
-    }
-    class_table.addid(name, classes->nth(i));
-    Symbol parent_sym = classes->nth(i)->get_parent_sym();
-    if (parent_sym == Bool || parent_sym == Int || parent_sym == Str) {
-      semant_error(classes->nth(i))
-          << "Class " << name << " cannot inherit class " << parent_sym << "."
-          << std::endl;
-    }
   }
   class_table.exitscope();
 
