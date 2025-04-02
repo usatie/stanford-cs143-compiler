@@ -94,19 +94,7 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
   install_basic_classes();
 
   /* Install user-defined classes */
-  class_table.enterscope();
-  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
-    Symbol name = classes->nth(i)->get_name();
-    if (class_table.probe(name) != NULL) {
-      semant_error(classes->nth(i))
-          << "Class " << name << " was previously defined." << std::endl;
-    } else if (class_table.lookup(name) != NULL) {
-      semant_error(classes->nth(i))
-          << "Redefinition of basic class " << name << std::endl;
-    } else {
-      class_table.addid(name, classes->nth(i));
-    }
-  }
+  install_user_defined_classes(classes);
 
   /* Check Illegal Undefined/Basic class inheritance */
   if (semant_debug) {
@@ -152,11 +140,22 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
     has_cyclic_inheritance(curr, curr);
   }
   class_table.exitscope();
+}
 
-  /* TODO: Check Naming and Scoping */
-  check_name_and_scope();
-  /* TODO: Type Checking */
-  check_type();
+void ClassTable::install_user_defined_classes(Classes classes) {
+  class_table.enterscope();
+  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
+    Symbol name = classes->nth(i)->get_name();
+    if (class_table.probe(name) != NULL) {
+      semant_error(classes->nth(i))
+          << "Class " << name << " was previously defined." << std::endl;
+    } else if (class_table.lookup(name) != NULL) {
+      semant_error(classes->nth(i))
+          << "Redefinition of basic class " << name << std::endl;
+    } else {
+      class_table.addid(name, classes->nth(i));
+    }
+  }
 }
 
 void ClassTable::install_basic_classes() {
@@ -353,6 +352,10 @@ void program_class::semant() {
   ClassTable *classtable = new ClassTable(classes);
 
   /* some semantic analysis code may go here */
+  /* TODO: Check Naming and Scoping */
+  classtable->check_name_and_scope();
+  /* TODO: Type Checking */
+  classtable->check_type();
 
   if (classtable->errors()) {
     cerr << "Compilation halted due to static semantic errors." << endl;
