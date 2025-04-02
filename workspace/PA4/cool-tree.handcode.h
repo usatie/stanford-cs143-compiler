@@ -58,14 +58,20 @@ void dump_with_types(ostream&, int);
 virtual Symbol get_name() = 0;      \
 virtual Symbol get_parent_sym() = 0;      \
 virtual Symbol get_filename() = 0;      \
-virtual void dump_with_types(ostream&,int) = 0; 
+virtual void dump_with_types(ostream&,int) = 0;  \
+virtual void set_parent(Class_ parentnd) = 0;  \
+virtual Class_ get_parent() = 0;  \
 
 
 #define class__EXTRAS                                 \
 Symbol get_name() { return name; }             \
 Symbol get_parent_sym() { return parent; }             \
 Symbol get_filename() { return filename; }             \
-void dump_with_types(ostream&,int);                    
+void set_parent(Class_ parentnd) { parentnd = parentnd; }             \
+Class_ get_parent() { return parentnd; }             \
+void dump_with_types(ostream&,int);                    \
+protected: \
+Class_ parentnd = NULL; \
 
 
 #define Feature_EXTRAS                                        \
