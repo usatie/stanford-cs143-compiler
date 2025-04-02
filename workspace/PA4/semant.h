@@ -37,9 +37,7 @@ public:
 
   void check_name_and_scope();
   void check_type();
-  bool has_cyclic_inheritance(Class_ orig, Class_ curr,
-                              InternalClassTable &class_table,
-                              InternalClassTable &cycle_table);
+  bool has_cyclic_inheritance(Class_ orig, Class_ curr);
 };
 
 #endif

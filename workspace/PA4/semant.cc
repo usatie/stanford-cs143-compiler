@@ -55,34 +55,27 @@ static void initialize_constants(void) {
   val = idtable.add_string("_val");
 }
 
-bool ClassTable::has_cyclic_inheritance(Class_ orig, Class_ curr,
-                                        InternalClassTable &class_table,
-                                        InternalClassTable &cycle_table) {
+bool ClassTable::has_cyclic_inheritance(Class_ orig, Class_ curr) {
   // Check cycles already detected
-  if (cycle_table.lookup(curr->get_name()) != NULL) {
+  if (class_table.probe(curr->get_name()) != NULL) {
     return true;
   }
-  // Check if the class is the original class (if not, it should be basic class
-  // -> no cycle)
-  if (class_table.lookup(curr->get_name()) == NULL) {
-    return false;
-  }
+  // If no parent -> no cycle
   auto parent = class_table.lookup(curr->get_parent_sym());
   if (parent == NULL) {
-    // TODO: Maybe we can store the curr to non_cyclic_classes
     return false; // parent is a basic class
   }
   // Check if the parent class is the original class (i.e. cycle detected)
   if (orig == parent) {
-    cycle_table.addid(curr->get_name(), curr);
+    class_table.addid(curr->get_name(), curr);
     semant_error(curr) << "Class " << curr->get_name() << ", or an ancestor of "
                        << curr->get_name()
                        << ", is involved in an inheritance cycle." << std::endl;
     return true;
   }
   // Check if the ancestor classes have cyclic inheritance
-  if (has_cyclic_inheritance(orig, parent, class_table, cycle_table)) {
-    cycle_table.addid(curr->get_name(), curr);
+  if (has_cyclic_inheritance(orig, parent)) {
+    class_table.addid(curr->get_name(), curr);
     semant_error(curr) << "Class " << curr->get_name() << ", or an ancestor of "
                        << curr->get_name()
                        << ", is involved in an inheritance cycle." << std::endl;
@@ -165,13 +158,14 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
   if (semant_debug) {
     std::cout << "Checking cyclic inheritance..." << std::endl;
   }
-  InternalClassTable cycle_table;
-  cycle_table.enterscope();
+  // Use a new scope to manage the already checked classes
+  class_table.enterscope();
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
     Symbol name = classes->nth(i)->get_name();
     auto curr = classes->nth(i);
-    has_cyclic_inheritance(curr, curr, class_table, cycle_table);
+    has_cyclic_inheritance(curr, curr);
   }
+  class_table.exitscope();
 
   /* TODO: Check Naming and Scoping */
   check_name_and_scope();
