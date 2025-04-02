@@ -101,16 +101,34 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
   /* install basic classes */
   install_basic_classes();
 
-  /* Check Basic class inheritance */
-  if (semant_debug) {
-    std::cout << "Checking basic class inheritance..." << std::endl;
-  }
+  /* Install user-defined classes */
+  // TODO: If we use separate scopes, separate tables may not be necessary
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
     Symbol name = classes->nth(i)->get_name();
     if (basic_class_table.lookup(name) != NULL) {
       semant_error(classes->nth(i))
           << "Redefinition of basic class " << name << std::endl;
+    } else if (class_table.lookup(name) != NULL) {
+      semant_error(classes->nth(i))
+          << "Class " << name << " was previously defined." << std::endl;
+    } else {
+      class_table.addid(name, classes->nth(i));
     }
+  }
+
+  /* Check Basic class inheritance */
+  if (semant_debug) {
+    std::cout << "Checking basic class inheritance..." << std::endl;
+  }
+  // Use a new scope to manage the already checked classes, in order to check if
+  // a class is already checked
+  class_table.enterscope();
+  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
+    Symbol name = classes->nth(i)->get_name();
+    if (class_table.probe(name) != NULL) {
+      continue;
+    }
+    class_table.addid(name, classes->nth(i));
     Symbol parent = classes->nth(i)->get_parent();
     if (parent == Bool || parent == Int || parent == Str) {
       semant_error(classes->nth(i))
@@ -118,16 +136,7 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
           << std::endl;
     }
   }
-
-  /* Install user-defined classes */
-  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
-    Symbol name = classes->nth(i)->get_name();
-    if (class_table.lookup(name) != NULL) {
-      semant_error(classes->nth(i))
-          << "Class " << name << " was previously defined." << std::endl;
-    }
-    class_table.addid(name, classes->nth(i));
-  }
+  class_table.exitscope();
 
   /* Check Cyclic inheritance */
   if (semant_debug) {

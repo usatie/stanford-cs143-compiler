@@ -1,4 +1,4 @@
-class C {
+class C inherits Bool {
 	a : Int;
 	b : Bool;
 	init(x : Int, y : Bool) : C {
@@ -11,7 +11,7 @@ class C {
 };
 
 (* Duplicate definition *)
-class C {
+class C inherits Bool {
 	a : Int;
 	b : Bool;
 	init(x : Int, y : Bool) : C {
@@ -22,6 +22,8 @@ class C {
            }
 	};
 };
+
+class C {};
 
 Class Main {
 	main():C {

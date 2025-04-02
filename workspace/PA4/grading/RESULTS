@@ -51,7 +51,6 @@
 	-1 (overriderenamearg)	 Overriding parent's method with new param names (legal)
 	-1 (overridingmethod4)	 Illegal method override - different param types
 	-1 (signaturechange)	 Method override with different number of params
-	-1 (redefinedobject)	 Redefinition of basic class Object (illegal)
 	-1 (returntypenoexist)	 Undefined return type
 	-1 (scopes)	 Scope test (legal)
 	-1 (self-assignment)	 Assignment to self (illegal)
