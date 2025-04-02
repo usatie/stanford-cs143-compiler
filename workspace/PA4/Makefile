@@ -62,6 +62,10 @@ dotest:	semant good.cl bad.cl
 	@echo "\nRunning semantic checker on bad.cl\n"
 	-./mysemant bad.cl
 
+.PHONY: dotest
+grade: semant
+	perl pa3-grading.pl
+
 ${LIBS}:
 	${CLASSDIR}/etc/link-object ${ASSN} $@
 
