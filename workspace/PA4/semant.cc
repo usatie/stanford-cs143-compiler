@@ -55,6 +55,44 @@ static void initialize_constants(void) {
   val = idtable.add_string("_val");
 }
 
+bool ClassTable::has_cyclic_inheritance(
+    Class_ orig, Class_ curr, SymbolTable<char *, Class__class> *class_table,
+    SymbolTable<char *, Class__class> *cycle_table) {
+  // Check cycles already detected
+  if (cycle_table->lookup(curr->get_name()->get_string()) != NULL) {
+    return true;
+  }
+  // Check if the class is the original class (if not, it should be basic class
+  // -> no cycle)
+  if (class_table->lookup(curr->get_name()->get_string()) == NULL) {
+    return false;
+  }
+  auto parent = class_table->lookup(curr->get_parent()->get_string());
+  if (parent == NULL) {
+    // TODO: Maybe we can store the curr to non_cyclic_classes
+    return false; // parent is a basic class
+  }
+  // Check if the parent class is the original class (i.e. cycle detected)
+  if (orig == parent) {
+    cycle_table->addid(curr->get_name()->get_string(), curr);
+    semant_error(curr) << "Class " << curr->get_name() << ", or an ancestor of "
+                       << curr->get_name()
+                       << ", is involved in an inheritance cycle." << std::endl;
+    return true;
+  }
+  // Check if the ancestor classes have cyclic inheritance
+  if (has_cyclic_inheritance(orig, parent, class_table, cycle_table)) {
+    cycle_table->addid(curr->get_name()->get_string(), curr);
+    semant_error(curr) << "Class " << curr->get_name() << ", or an ancestor of "
+                       << curr->get_name()
+                       << ", is involved in an inheritance cycle." << std::endl;
+    return true;
+  } else {
+    // TODO: Maybe we can store the curr to non_cyclic_classes
+    return false;
+  }
+}
+
 ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
 
   /* Fill this in */
@@ -86,10 +124,20 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
     class_table->addid(name->get_string(), classes->nth(i));
   }
 
-  /* TODO: Check Cyclic inheritance */
+  /* Check Cyclic inheritance */
   if (semant_debug) {
     std::cout << "Checking cyclic inheritance..." << std::endl;
   }
+  SymbolTable<char *, Class__class> *cycle_table =
+      new SymbolTable<char *, Class__class>();
+  cycle_table->enterscope();
+  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
+    Symbol name = classes->nth(i)->get_name();
+    auto curr = classes->nth(i);
+    has_cyclic_inheritance(curr, curr, class_table, cycle_table);
+  }
+  delete cycle_table;
+
   /* Check Undefined class inheritance */
   if (semant_debug) {
     std::cout << "Checking undefined class inheritance..." << std::endl;

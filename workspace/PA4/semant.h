@@ -36,6 +36,7 @@ public:
 
   void check_name_and_scope();
   void check_type();
+  bool has_cyclic_inheritance(Class_ orig, Class_ curr, SymbolTable<char *, Class__class> *class_table, SymbolTable<char *, Class__class> *cycle_table);
 };
 
 
