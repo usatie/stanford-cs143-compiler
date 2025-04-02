@@ -25,8 +25,8 @@ private:
   int semant_errors;
   void install_basic_classes();
   ostream& error_stream;
-  InternalClassTable *basic_class_table;
-  SymbolTable<char *, Class__class> *class_table;
+  InternalClassTable basic_class_table;
+  InternalClassTable class_table;
 
 public:
   ClassTable(Classes);
@@ -37,7 +37,7 @@ public:
 
   void check_name_and_scope();
   void check_type();
-  bool has_cyclic_inheritance(Class_ orig, Class_ curr, SymbolTable<char *, Class__class> *class_table, SymbolTable<char *, Class__class> *cycle_table);
+  bool has_cyclic_inheritance(Class_ orig, Class_ curr, InternalClassTable &class_table, InternalClassTable &cycle_table);
 };
 
 
