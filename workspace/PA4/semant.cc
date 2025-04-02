@@ -67,7 +67,7 @@ bool ClassTable::has_cyclic_inheritance(Class_ orig, Class_ curr,
   if (class_table.lookup(curr->get_name()) == NULL) {
     return false;
   }
-  auto parent = class_table.lookup(curr->get_parent());
+  auto parent = class_table.lookup(curr->get_parent_sym());
   if (parent == NULL) {
     // TODO: Maybe we can store the curr to non_cyclic_classes
     return false; // parent is a basic class
@@ -129,7 +129,7 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
       continue;
     }
     class_table.addid(name, classes->nth(i));
-    Symbol parent = classes->nth(i)->get_parent();
+    Symbol parent = classes->nth(i)->get_parent_sym();
     if (parent == Bool || parent == Int || parent == Str) {
       semant_error(classes->nth(i))
           << "Class " << name << " cannot inherit class " << parent << "."
@@ -156,7 +156,7 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
   }
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
     Symbol name = classes->nth(i)->get_name();
-    Symbol parent = classes->nth(i)->get_parent();
+    Symbol parent = classes->nth(i)->get_parent_sym();
     if (basic_class_table.lookup(parent) == NULL &&
         class_table.lookup(parent) == NULL) {
       semant_error(classes->nth(i))
@@ -319,11 +319,11 @@ static bool conforms_to(Class_ A, Class_ B, InternalClassTable &class_table) {
     return true;
   }
   // if C inherits from P, then C ≤ P
-  if (A->get_parent() == B->get_name()) {
+  if (A->get_parent_sym() == B->get_name()) {
     return true;
   }
   // if A ≤ C and C ≤ P then A ≤ P
-  auto parent = class_table.lookup(A->get_parent());
+  auto parent = class_table.lookup(A->get_parent_sym());
   return conforms_to(parent, B, class_table);
 }
 
