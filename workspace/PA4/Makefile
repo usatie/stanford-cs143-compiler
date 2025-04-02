@@ -70,6 +70,10 @@ grade: semant
 fmt:
 	clang-format semant.cc cool-tree.handcode.h semant.h -i
 
+.PHONY: test
+test: semant
+	./tests/run_all_tests.sh
+
 ${LIBS}:
 	${CLASSDIR}/etc/link-object ${ASSN} $@
 
