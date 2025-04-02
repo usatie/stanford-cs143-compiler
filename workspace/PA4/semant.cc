@@ -108,9 +108,15 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
   }
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
     Symbol name = classes->nth(i)->get_name();
-    if (basic_class_table->lookup(name->get_string()) != NULL) {
+    if (basic_class_table->lookup(name) != NULL) {
       semant_error(classes->nth(i))
           << "Redefinition of basic class " << name << std::endl;
+    }
+    Symbol parent = classes->nth(i)->get_parent();
+    if (parent == Bool || parent == Int || parent == Str) {
+      semant_error(classes->nth(i))
+          << "Class " << name << " cannot inherit class " << parent << "."
+          << std::endl;
     }
   }
 
@@ -145,13 +151,18 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
     Symbol name = classes->nth(i)->get_name();
     Symbol parent = classes->nth(i)->get_parent();
-    if (basic_class_table->lookup(parent->get_string()) == NULL &&
+    if (basic_class_table->lookup(parent) == NULL &&
         class_table->lookup(parent->get_string()) == NULL) {
       semant_error(classes->nth(i))
           << "Class " << name << " inherits from an undefined class " << parent
           << std::endl;
     }
   }
+
+  /* TODO: Check Naming and Scoping */
+  check_name_and_scope();
+  /* TODO: Type Checking */
+  check_type();
 }
 
 void ClassTable::install_basic_classes() {
@@ -251,11 +262,13 @@ void ClassTable::install_basic_classes() {
       filename);
 
   /* Add basic classes to the class table */
-  basic_class_table = new SymbolTable<char *, Class__class>();
+  basic_class_table = new InternalClassTable();
   basic_class_table->enterscope();
-  basic_class_table->addid(Object->get_string(), Object_class);
-  basic_class_table->addid(IO->get_string(), IO_class);
-  basic_class_table->addid(Int->get_string(), Int_class);
+  basic_class_table->addid(Object, Object_class);
+  basic_class_table->addid(IO, IO_class);
+  basic_class_table->addid(Int, Int_class);
+  basic_class_table->addid(Bool, Bool_class);
+  basic_class_table->addid(Str, Str_class);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -309,6 +322,7 @@ static bool conforms_to(Class_ A, Class_ B,
   auto parent = class_table->lookup(A->get_parent()->get_string());
   return conforms_to(parent, B, class_table);
 }
+
 void ClassTable::check_name_and_scope() {
   if (semant_debug) {
     std::cout << "Checking naming and scoping..." << std::endl;
@@ -341,10 +355,6 @@ void program_class::semant() {
   ClassTable *classtable = new ClassTable(classes);
 
   /* some semantic analysis code may go here */
-  /* TODO: Check Naming and Scoping */
-  classtable->check_name_and_scope();
-  /* TODO: Type Checking */
-  classtable->check_type();
 
   if (classtable->errors()) {
     cerr << "Compilation halted due to static semantic errors." << endl;

@@ -13,6 +13,7 @@
 
 class ClassTable;
 typedef ClassTable *ClassTableP;
+typedef SymbolTable<Symbol, Class__class> InternalClassTable;
 
 // This is a structure that may be used to contain the semantic
 // information such as the inheritance graph.  You may use it or not as
@@ -24,7 +25,7 @@ private:
   int semant_errors;
   void install_basic_classes();
   ostream& error_stream;
-  SymbolTable<char *, Class__class> *basic_class_table;
+  InternalClassTable *basic_class_table;
   SymbolTable<char *, Class__class> *class_table;
 
 public:
