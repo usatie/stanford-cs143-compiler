@@ -292,6 +292,23 @@ ostream &ClassTable::semant_error() {
 // TODO: check_name_and_scope and check_type
 //
 ///////////////////////////////////////////////////////////////////
+static bool conforms_to(Class_ A, Class_ B,
+                        SymbolTable<char *, Class__class> *class_table) {
+  if (A == NULL) {
+    return false;
+  }
+  // A ≤ A for all types A
+  if (A == B) {
+    return true;
+  }
+  // if C inherits from P, then C ≤ P
+  if (A->get_parent() == B->get_name()) {
+    return true;
+  }
+  // if A ≤ C and C ≤ P then A ≤ P
+  auto parent = class_table->lookup(A->get_parent()->get_string());
+  return conforms_to(parent, B, class_table);
+}
 void ClassTable::check_name_and_scope() {
   if (semant_debug) {
     std::cout << "Checking naming and scoping..." << std::endl;
