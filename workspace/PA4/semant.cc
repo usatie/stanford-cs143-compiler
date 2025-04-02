@@ -96,21 +96,21 @@ bool ClassTable::has_cyclic_inheritance(Class_ orig, Class_ curr,
 ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
 
   /* Fill this in */
-  class_table.enterscope();
 
   /* install basic classes */
   install_basic_classes();
 
   /* Install user-defined classes */
+  class_table.enterscope();
   // TODO: If we use separate scopes, separate tables may not be necessary
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
     Symbol name = classes->nth(i)->get_name();
-    if (basic_class_table.lookup(name) != NULL) {
-      semant_error(classes->nth(i))
-          << "Redefinition of basic class " << name << std::endl;
-    } else if (class_table.lookup(name) != NULL) {
+    if (class_table.probe(name) != NULL) {
       semant_error(classes->nth(i))
           << "Class " << name << " was previously defined." << std::endl;
+    } else if (class_table.lookup(name) != NULL) {
+      semant_error(classes->nth(i))
+          << "Redefinition of basic class " << name << std::endl;
     } else {
       class_table.addid(name, classes->nth(i));
     }
@@ -129,19 +129,14 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
     }
     class_table.addid(name, classes->nth(i));
     Symbol parent_sym = classes->nth(i)->get_parent_sym();
-    auto parent = basic_class_table.lookup(parent_sym);
-    if (parent != NULL) {
-      classes->nth(i)->set_parent(parent);
+    auto parent = class_table.lookup(parent_sym);
+    if (parent == NULL) {
+      semant_error(classes->nth(i))
+          << "Class " << name << " inherits from an undefined class "
+          << parent_sym << "." << std::endl;
       continue;
     }
-    parent = class_table.lookup(parent_sym);
-    if (parent != NULL) {
-      classes->nth(i)->set_parent(parent);
-      continue;
-    }
-    semant_error(classes->nth(i))
-        << "Class " << name << " inherits from an undefined class "
-        << parent_sym << std::endl;
+    classes->nth(i)->set_parent(parent);
   }
   class_table.exitscope();
 
@@ -280,13 +275,19 @@ void ClassTable::install_basic_classes() {
                      Str, no_expr()))),
       filename);
 
+  /* Set parent classes */
+  IO_class->set_parent(Object_class);
+  Int_class->set_parent(Object_class);
+  Bool_class->set_parent(Object_class);
+  Str_class->set_parent(Object_class);
+
   /* Add basic classes to the class table */
-  basic_class_table.enterscope();
-  basic_class_table.addid(Object, Object_class);
-  basic_class_table.addid(IO, IO_class);
-  basic_class_table.addid(Int, Int_class);
-  basic_class_table.addid(Bool, Bool_class);
-  basic_class_table.addid(Str, Str_class);
+  class_table.enterscope();
+  class_table.addid(Object, Object_class);
+  class_table.addid(IO, IO_class);
+  class_table.addid(Int, Int_class);
+  class_table.addid(Bool, Bool_class);
+  class_table.addid(Str, Str_class);
 }
 
 ////////////////////////////////////////////////////////////////////

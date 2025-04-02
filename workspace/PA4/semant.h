@@ -26,7 +26,6 @@ private:
   void install_basic_classes();
   void install_user_defined_classes(Classes classes);
   ostream &error_stream;
-  InternalClassTable basic_class_table;
   InternalClassTable class_table;
 
 public:
