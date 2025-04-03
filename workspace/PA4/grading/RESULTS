@@ -1,4 +1,3 @@
-	-1 (anattributenamedself)	 An attribute named self
 	-1 (assignment)	 Valid assignments
 	-1 (assignnoconform)	 Assignment with non conforming expression
 	-1 (attroverride)	 Attempt to override parent's attribute
@@ -20,7 +19,6 @@
 	-1 (comparisons)	 Legal < and <= comparisons
 	-1 (cycleinmethods)	 Methods call each other in a cycle (legal)
 	-1 (dispatch)	 Simple dispatches
-	-1 (dupformals)	 Duplicate name in formal param list
 	-1 (expressionblock)	 Simple expression block (i.e. list)
 	-1 (forwardinherits)	 Forward declaration in inherits clause (legal)
 	-1 (hairyscary)	 Messy legal Cool program
@@ -52,7 +50,6 @@
 	-1 (scopes)	 Scope test (legal)
 	-1 (self-assignment)	 Assignment to self (illegal)
 	-1 (selfinformalparameter)	 Self as name of a formal parameter (illegal)
-	-1 (selftypeparameterposition)	 SELF_TYPE given as a parameter type (illegal)
 	-1 (selftyperedeclared)	 SELF_TYPE redeclared (used a class name)
 	-1 (simplearith)	 Some simple arithmetic exprs
 	-1 (simplecase)	 A simple case expr

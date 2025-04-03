@@ -367,6 +367,12 @@ void method_class::semant(ClassTableP classtable) {
     std::cout << "method_class::semant" << std::endl;
   }
   // TODO: name check
+  if (classtable->symtab.lookup(name) != NULL) {
+    classtable->semant_error(this)
+        << "Method " << name << " is multiply defined." << std::endl;
+  } else {
+    classtable->symtab.addid(name, this);
+  }
   if (classtable->lookup_class(return_type) == NULL) {
     classtable->semant_error(this) << "Undefined return type " << return_type
                                    << " in method " << name << "." << std::endl;
@@ -388,23 +394,28 @@ void attr_class::semant(ClassTableP classtable) {
   }
   init->semant(classtable);
   if (classtable->symtab.lookup(name) != NULL) {
-    classtable->semant_error()
-        << "Attribute " << name << " is multiply defined." << std::endl;
-    return;
+    classtable->semant_error(this)
+        << "Attribute " << name << " is multiply defined in class."
+        << std::endl;
+  } else {
+    classtable->symtab.addid(name, this);
   }
   if (classtable->lookup_class(type_decl) == NULL) {
     classtable->semant_error(this) << "Class " << type_decl << " of attribute "
                                    << name << " is undefined." << std::endl;
   }
-  classtable->symtab.addid(name, this);
 }
 
 void formal_class::semant(ClassTableP classtable) {
   if (semant_debug) {
     std::cout << "formal_class::semant" << std::endl;
   }
-  // TODO: name check
-  classtable->symtab.addid(name, this);
+  if (classtable->symtab.probe(name) != NULL) {
+    classtable->semant_error(this)
+        << "Formal parameter " << name << " is multiply defined." << std::endl;
+  } else {
+    classtable->symtab.addid(name, this);
+  }
   if (classtable->lookup_class(type_decl) == NULL) {
     classtable->semant_error(this)
         << "Class " << type_decl << " of formal parameter " << name
