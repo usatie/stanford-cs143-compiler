@@ -367,14 +367,19 @@ void method_class::semant(ClassTableP classtable) {
     std::cout << "method_class::semant" << std::endl;
   }
   // TODO: name check
-  // TODO: return_type check
+  if (classtable->lookup_class(return_type) == NULL) {
+    classtable->semant_error(this) << "Undefined return type " << return_type
+                                   << " in method " << name << "." << std::endl;
+  }
   // Install the names of the formals in the symbol table
   classtable->symtab.enterscope();
   for (int i = formals->first(); formals->more(i); i = formals->next(i)) {
     auto formal = formals->nth(i);
     formal->semant(classtable);
   }
+  // TODO: Check if expr type matches return_type
   expr->semant(classtable);
+  classtable->symtab.exitscope();
 }
 
 void attr_class::semant(ClassTableP classtable) {
@@ -395,6 +400,7 @@ void formal_class::semant(ClassTableP classtable) {
     std::cout << "formal_class::semant" << std::endl;
   }
   // TODO: name check
+  classtable->symtab.addid(name, this);
   // TODO: type check
 }
 
