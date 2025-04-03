@@ -466,6 +466,17 @@ void plus_class::semant(ClassTableP classtable) {
   e2->semant(classtable);
 }
 void let_class::semant(ClassTableP classtable) { /* TODO: Implement */
+  init->semant(classtable);
+  if (classtable->lookup_class(type_decl) == NULL) {
+    classtable->semant_error(this)
+        << "Class " << type_decl << " of let-bound identifier " << identifier
+        << " is undefined." << std::endl;
+  }
+  // TODO: Check if the type_decl and type(init) matches
+  classtable->symtab.enterscope();
+  classtable->symtab.addid(identifier, this);
+  body->semant(classtable);
+  classtable->symtab.exitscope();
 }
 void block_class::semant(ClassTableP classtable) {
   for (int i = body->first(); body->more(i); i = body->next(i)) {
