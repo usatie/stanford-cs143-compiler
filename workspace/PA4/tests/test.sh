@@ -45,10 +45,6 @@ if cmp -s $mysemant_out $coolc_out; then
   echo -e "${GREEN}✓ Standard output matches${NC}"
 else
   echo -e "${RED}✗ Standard output differs${NC}"
-  echo "mysemant stdout:"
-  cat $mysemant_out
-  echo "coolc stdout:"
-  cat $coolc_out
   echo "Diff:"
   diff $mysemant_out $coolc_out
 fi
@@ -58,10 +54,6 @@ if cmp -s $mysemant_err $coolc_err; then
   echo -e "${GREEN}✓ Standard error matches${NC}"
 else
   echo -e "${RED}✗ Standard error differs${NC}"
-  echo "mysemant stderr:"
-  cat $mysemant_err
-  echo "coolc stderr:"
-  cat $coolc_err
   echo "Diff:"
   diff $mysemant_err $coolc_err
 fi

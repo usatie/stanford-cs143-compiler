@@ -366,16 +366,21 @@ void method_class::semant(ClassTableP classtable) {
   if (semant_debug) {
     std::cout << "method_class::semant" << std::endl;
   }
-  // TODO:
+  // TODO: name check
+  // TODO: return_type check
+  // Install the names of the formals in the symbol table
+  classtable->symtab.enterscope();
+  for (int i = formals->first(); formals->more(i); i = formals->next(i)) {
+    auto formal = formals->nth(i);
+    formal->semant(classtable);
+  }
+  expr->semant(classtable);
 }
 
 void attr_class::semant(ClassTableP classtable) {
   if (semant_debug) {
     std::cout << "attr_class::semant" << std::endl;
   }
-  // if (dynamic_cast<object_class *>(init) != NULL) {
-  //   dynamic_cast<object_class *>(init)->semant(classtable);
-  // }
   init->semant(classtable);
   if (classtable->symtab.lookup(name) != NULL) {
     classtable->semant_error()
@@ -385,51 +390,95 @@ void attr_class::semant(ClassTableP classtable) {
   classtable->symtab.addid(name, this);
 }
 
-void no_expr_class::semant(ClassTable *) { /* TODO: Implement */
+void formal_class::semant(ClassTableP classtable) {
+  if (semant_debug) {
+    std::cout << "formal_class::semant" << std::endl;
+  }
+  // TODO: name check
+  // TODO: type check
 }
-void isvoid_class::semant(ClassTable *) { /* TODO: Implement */
+
+void no_expr_class::semant(ClassTableP classtable) {}
+void isvoid_class::semant(ClassTableP classtable) { e1->semant(classtable); }
+void new__class::semant(ClassTableP classtable) {
+  if (classtable->lookup_class(type_name) == NULL) {
+    classtable->semant_error(this)
+        << "'new' used with undefined class " << type_name << "." << std::endl;
+  }
 }
-void new__class::semant(ClassTable *) { /* TODO: Implement */
+void string_const_class::semant(ClassTableP classtable) {}
+void bool_const_class::semant(ClassTableP classtable) {}
+void int_const_class::semant(ClassTableP classtable) {}
+void comp_class::semant(ClassTableP classtable) { e1->semant(classtable); }
+void leq_class::semant(ClassTableP classtable) {
+  e1->semant(classtable);
+  e2->semant(classtable);
 }
-void string_const_class::semant(ClassTable *) { /* TODO: Implement */
+void eq_class::semant(ClassTableP classtable) {
+  e1->semant(classtable);
+  e2->semant(classtable);
 }
-void bool_const_class::semant(ClassTable *) { /* TODO: Implement */
+void lt_class::semant(ClassTableP classtable) {
+  e1->semant(classtable);
+  e2->semant(classtable);
 }
-void int_const_class::semant(ClassTable *) { /* TODO: Implement */
+void neg_class::semant(ClassTableP classtable) { e1->semant(classtable); }
+void divide_class::semant(ClassTableP classtable) {
+  e1->semant(classtable);
+  e2->semant(classtable);
 }
-void comp_class::semant(ClassTable *) { /* TODO: Implement */
+void mul_class::semant(ClassTableP classtable) {
+  e1->semant(classtable);
+  e2->semant(classtable);
 }
-void leq_class::semant(ClassTable *) { /* TODO: Implement */
+void sub_class::semant(ClassTableP classtable) {
+  e1->semant(classtable);
+  e2->semant(classtable);
 }
-void eq_class::semant(ClassTable *) { /* TODO: Implement */
+void plus_class::semant(ClassTableP classtable) {
+  e1->semant(classtable);
+  e2->semant(classtable);
 }
-void lt_class::semant(ClassTable *) { /* TODO: Implement */
+void let_class::semant(ClassTableP classtable) { /* TODO: Implement */
 }
-void neg_class::semant(ClassTable *) { /* TODO: Implement */
+void block_class::semant(ClassTableP classtable) {
+  for (int i = body->first(); body->more(i); i = body->next(i)) {
+    body->nth(i)->semant(classtable);
+  }
 }
-void divide_class::semant(ClassTable *) { /* TODO: Implement */
+void typcase_class::semant(ClassTableP classtable) { /* TODO: Implement */
 }
-void mul_class::semant(ClassTable *) { /* TODO: Implement */
+void loop_class::semant(ClassTableP classtable) {
+  pred->semant(classtable);
+  body->semant(classtable);
 }
-void sub_class::semant(ClassTable *) { /* TODO: Implement */
+void cond_class::semant(ClassTableP classtable) { /* TODO: Implement */
+  pred->semant(classtable);
+  then_exp->semant(classtable);
+  else_exp->semant(classtable);
 }
-void plus_class::semant(ClassTable *) { /* TODO: Implement */
+void dispatch_class::semant(ClassTableP classtable) {
+  expr->semant(classtable);
+  // TODO: Check if name is a method of the class of the expr
+  for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
+    actual->nth(i)->semant(classtable);
+  }
 }
-void let_class::semant(ClassTable *) { /* TODO: Implement */
+void static_dispatch_class::semant(
+    ClassTableP classtable) { /* TODO: Implement */
+  expr->semant(classtable);
+  // TODO: Check if typename is a parent class of the class of the expr
+  // TODO: Check if name is a method of the parent class
+  for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
+    actual->nth(i)->semant(classtable);
+  }
 }
-void block_class::semant(ClassTable *) { /* TODO: Implement */
-}
-void typcase_class::semant(ClassTable *) { /* TODO: Implement */
-}
-void loop_class::semant(ClassTable *) { /* TODO: Implement */
-}
-void cond_class::semant(ClassTable *) { /* TODO: Implement */
-}
-void dispatch_class::semant(ClassTable *) { /* TODO: Implement */
-}
-void static_dispatch_class::semant(ClassTable *) { /* TODO: Implement */
-}
-void assign_class::semant(ClassTable *) { /* TODO: Implement */
+void assign_class::semant(ClassTableP classtable) {
+  if (classtable->symtab.lookup(name) == NULL) {
+    classtable->semant_error(this)
+        << "Assignment to undeclared variable " << name << "." << std::endl;
+  }
+  expr->semant(classtable);
 }
 
 void object_class::semant(ClassTableP classtable) {

@@ -87,9 +87,13 @@ protected:                                                                     \
   bool is_method();                                                            \
   void semant(ClassTableP classtable);
 
-#define Formal_EXTRAS virtual void dump_with_types(ostream &, int) = 0;
+#define Formal_EXTRAS                                                          \
+  virtual void dump_with_types(ostream &, int) = 0;                            \
+  virtual void semant(ClassTableP classtable) = 0;
 
-#define formal_EXTRAS void dump_with_types(ostream &, int);
+#define formal_EXTRAS                                                          \
+  void dump_with_types(ostream &, int);                                        \
+  void semant(ClassTableP classtable);
 
 #define Case_EXTRAS virtual void dump_with_types(ostream &, int) = 0;
 
