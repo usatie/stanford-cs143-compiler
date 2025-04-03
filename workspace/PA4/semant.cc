@@ -337,6 +337,7 @@ void class__class::semant(ClassTableP classtable) {
   }
   // TODO: install symbols from anscestor classes
   // Install symbols from this class
+  classtable->method_table.enterscope();
   classtable->symtab.enterscope();
   classtable->symtab.addid(self, this);
   // TODO: Semantic analysis for this class
@@ -357,6 +358,7 @@ void class__class::semant(ClassTableP classtable) {
     feature->semant(classtable);
   }
   classtable->symtab.exitscope();
+  classtable->method_table.exitscope();
 
   // Mark this class as visited
   classtable->mark_visited(this);
@@ -366,12 +368,11 @@ void method_class::semant(ClassTableP classtable) {
   if (semant_debug) {
     std::cout << "method_class::semant" << std::endl;
   }
-  // TODO: name check
-  if (classtable->symtab.lookup(name) != NULL) {
+  if (classtable->method_table.lookup(name) != NULL) {
     classtable->semant_error(this)
         << "Method " << name << " is multiply defined." << std::endl;
   } else {
-    classtable->symtab.addid(name, this);
+    classtable->method_table.addid(name, this);
   }
   if (classtable->lookup_class(return_type) == NULL) {
     classtable->semant_error(this) << "Undefined return type " << return_type

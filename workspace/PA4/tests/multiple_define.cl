@@ -8,4 +8,5 @@ class A
     f1(): Int { 42 };
     f2(a: Int, a: A): Int { 42 };
     f3(a: Int): Int { 42 };
+    a(): Int { 42 }; (* Attribute/Method may have the same name *)
 };
