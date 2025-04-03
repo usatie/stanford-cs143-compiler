@@ -104,10 +104,11 @@ protected:                                                                     \
   }                                                                            \
   virtual void dump_with_types(ostream &, int) = 0;                            \
   void dump_type(ostream &, int);                                              \
-  Expression_class() { type = (Symbol)NULL; }
+  Expression_class() { type = (Symbol)NULL; }                                  \
+  virtual void semant(ClassTableP classtable) = 0;
 
-#define Expression_SHARED_EXTRAS void dump_with_types(ostream &, int);
-
-#define object_EXTRAS void semant(ClassTableP classtable);
+#define Expression_SHARED_EXTRAS                                               \
+  void dump_with_types(ostream &, int);                                        \
+  void semant(ClassTableP classtable);
 
 #endif

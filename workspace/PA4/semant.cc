@@ -373,16 +373,63 @@ void attr_class::semant(ClassTableP classtable) {
   if (semant_debug) {
     std::cout << "attr_class::semant" << std::endl;
   }
-  if (dynamic_cast<object_class *>(init) != NULL) {
-    dynamic_cast<object_class *>(init)->semant(classtable);
-  }
-  // init->semant(classtable);
+  // if (dynamic_cast<object_class *>(init) != NULL) {
+  //   dynamic_cast<object_class *>(init)->semant(classtable);
+  // }
+  init->semant(classtable);
   if (classtable->symtab.lookup(name) != NULL) {
     classtable->semant_error()
         << "Attribute " << name << " is multiply defined." << std::endl;
     return;
   }
   classtable->symtab.addid(name, this);
+}
+
+void no_expr_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void isvoid_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void new__class::semant(ClassTable *) { /* TODO: Implement */
+}
+void string_const_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void bool_const_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void int_const_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void comp_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void leq_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void eq_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void lt_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void neg_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void divide_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void mul_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void sub_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void plus_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void let_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void block_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void typcase_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void loop_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void cond_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void dispatch_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void static_dispatch_class::semant(ClassTable *) { /* TODO: Implement */
+}
+void assign_class::semant(ClassTable *) { /* TODO: Implement */
 }
 
 void object_class::semant(ClassTableP classtable) {
