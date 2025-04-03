@@ -86,7 +86,8 @@ bool ClassTable::has_cyclic_inheritance(Class_ orig, Class_ curr) {
   }
 }
 
-ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
+ClassTable::ClassTable(Classes classes)
+    : semant_errors(0), error_stream(cerr), visiting(NULL) {
 
   /* Fill this in */
 
@@ -288,6 +289,10 @@ ostream &ClassTable::semant_error(Class_ c) {
   return semant_error(c->get_filename(), c);
 }
 
+ostream &ClassTable::semant_error(tree_node *t) {
+  return semant_error(visiting->get_filename(), t);
+}
+
 ostream &ClassTable::semant_error(Symbol filename, tree_node *t) {
   error_stream << filename << ":" << t->get_line_number() << ": ";
   return semant_error();
@@ -320,9 +325,85 @@ static bool conforms_to(Class_ A, Class_ B, InternalClassTable &class_table) {
   return conforms_to(parent, B, class_table);
 }
 
-void ClassTable::check_name_and_scope() {
+bool method_class::is_method() { return true; }
+bool attr_class::is_method() { return false; }
+
+void class__class::semant(ClassTableP classtable) {
+  if (semant_debug) {
+    std::cout << "class__class::semant" << std::endl;
+  }
+  if (classtable->is_visited(this)) {
+    return;
+  }
+  // TODO: install symbols from anscestor classes
+  // Install symbols from this class
+  classtable->symtab.enterscope();
+  classtable->symtab.addid(self, this);
+  // TODO: Semantic analysis for this class
+  // First, check all attributes (and install them to the symbol table)
+  for (int i = features->first(); features->more(i); i = features->next(i)) {
+    auto feature = features->nth(i);
+    if (feature->is_method()) {
+      continue;
+    }
+    feature->semant(classtable);
+  }
+  // Second, check all methods (and add them to the symbol table inside)
+  for (int i = features->first(); features->more(i); i = features->next(i)) {
+    auto feature = features->nth(i);
+    if (!feature->is_method()) {
+      continue;
+    }
+    feature->semant(classtable);
+  }
+  classtable->symtab.exitscope();
+
+  // Mark this class as visited
+  classtable->mark_visited(this);
+}
+
+void method_class::semant(ClassTableP classtable) {
+  if (semant_debug) {
+    std::cout << "method_class::semant" << std::endl;
+  }
+  // TODO:
+}
+
+void attr_class::semant(ClassTableP classtable) {
+  if (semant_debug) {
+    std::cout << "attr_class::semant" << std::endl;
+  }
+  if (dynamic_cast<object_class *>(init) != NULL) {
+    dynamic_cast<object_class *>(init)->semant(classtable);
+  }
+  // init->semant(classtable);
+  if (classtable->symtab.lookup(name) != NULL) {
+    classtable->semant_error()
+        << "Attribute " << name << " is multiply defined." << std::endl;
+    return;
+  }
+  classtable->symtab.addid(name, this);
+}
+
+void object_class::semant(ClassTableP classtable) {
+  if (semant_debug) {
+    std::cout << "object_class::semant" << std::endl;
+  }
+  if (classtable->symtab.lookup(name) == NULL) {
+    classtable->semant_error(this)
+        << "Undeclared identifier " << name << "." << std::endl;
+  }
+}
+
+void ClassTable::check_name_and_scope(Classes classes) {
   if (semant_debug) {
     std::cout << "Checking naming and scoping..." << std::endl;
+  }
+  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
+    visiting = classes->nth(i);
+    class_table.enterscope();
+    visiting->semant(this);
+    class_table.exitscope();
   }
 }
 
@@ -352,8 +433,12 @@ void program_class::semant() {
   ClassTable *classtable = new ClassTable(classes);
 
   /* some semantic analysis code may go here */
+  if (classtable->errors()) {
+    cerr << "Compilation halted due to static semantic errors." << endl;
+    exit(1);
+  }
   /* TODO: Check Naming and Scoping */
-  classtable->check_name_and_scope();
+  classtable->check_name_and_scope(classes);
   /* TODO: Type Checking */
   classtable->check_type();
 
@@ -362,3 +447,13 @@ void program_class::semant() {
     exit(1);
   }
 }
+
+Class_ ClassTable::lookup_class(Symbol name) {
+  return class_table.lookup(name);
+}
+
+bool ClassTable::is_visited(Class_ c) {
+  return class_table.probe(c->get_name()) != NULL;
+}
+
+void ClassTable::mark_visited(Class_ c) { class_table.addid(c->get_name(), c); }
