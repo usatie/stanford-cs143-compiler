@@ -392,6 +392,10 @@ void attr_class::semant(ClassTableP classtable) {
         << "Attribute " << name << " is multiply defined." << std::endl;
     return;
   }
+  if (classtable->lookup_class(type_decl) == NULL) {
+    classtable->semant_error(this) << "Class " << type_decl << " of attribute "
+                                   << name << " is undefined." << std::endl;
+  }
   classtable->symtab.addid(name, this);
 }
 
@@ -401,7 +405,11 @@ void formal_class::semant(ClassTableP classtable) {
   }
   // TODO: name check
   classtable->symtab.addid(name, this);
-  // TODO: type check
+  if (classtable->lookup_class(type_decl) == NULL) {
+    classtable->semant_error(this)
+        << "Class " << type_decl << " of formal parameter " << name
+        << " is undefined." << std::endl;
+  }
 }
 
 void no_expr_class::semant(ClassTableP classtable) {}
@@ -458,7 +466,7 @@ void loop_class::semant(ClassTableP classtable) {
   pred->semant(classtable);
   body->semant(classtable);
 }
-void cond_class::semant(ClassTableP classtable) { /* TODO: Implement */
+void cond_class::semant(ClassTableP classtable) {
   pred->semant(classtable);
   then_exp->semant(classtable);
   else_exp->semant(classtable);
