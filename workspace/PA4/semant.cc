@@ -305,6 +305,61 @@ ostream &ClassTable::semant_error() {
 
 ////////////////////////////////////////////////////////////////////
 //
+// Install features
+//
+///////////////////////////////////////////////////////////////////
+void class__class::install_features(ClassTable *classtable) {
+  // Install symbols from anscestor classes
+  auto parent = classtable->lookup_class(get_parent_sym());
+  if (parent != NULL) {
+    parent->install_features(classtable);
+  }
+  // Install symbols from features
+  // Methods:
+  //   1. Allow overriding ancestor methods
+  //   2. however, duplicate methods are not allowed
+  // Attributes:
+  //   1. Inherited attributes cannot be redefined.
+  classtable->method_table.enterscope();
+  classtable->symtab.enterscope();
+  classtable->symtab.addid(self, this);
+  for (int i = features->first(); features->more(i); i = features->next(i)) {
+    auto feature = features->nth(i);
+    if (feature->is_method()) {
+      if (classtable->method_table.probe(feature->get_name()) != NULL) {
+        classtable->semant_error(feature)
+            << "Method " << feature->get_name() << " is multiply defined."
+            << std::endl;
+      } else if (classtable->method_table.lookup(feature->get_name()) != NULL) {
+        // TODO: Check if the type of the method match
+        classtable->method_table.addid(feature->get_name(), feature);
+      } else {
+        classtable->method_table.addid(feature->get_name(), feature);
+      }
+    } else {
+      if (classtable->symtab.lookup(feature->get_name()) != NULL) {
+        classtable->semant_error(feature)
+            << "Attribute " << feature->get_name()
+            << " is multiply defined in class." << std::endl;
+      } else {
+        classtable->symtab.addid(feature->get_name(), feature);
+      }
+    }
+  }
+}
+
+void class__class::exit_scope(ClassTable *classtable) {
+  // Exit the scope of the class
+  classtable->method_table.exitscope();
+  classtable->symtab.exitscope();
+  // Exit the scope of the ancestor classes
+  auto parent = classtable->lookup_class(get_parent_sym());
+  if (parent != NULL) {
+    parent->exit_scope(classtable);
+  }
+}
+////////////////////////////////////////////////////////////////////
+//
 // TODO: check_name_and_scope and check_type
 //
 ///////////////////////////////////////////////////////////////////
@@ -335,30 +390,16 @@ void class__class::semant(ClassTableP classtable) {
   if (classtable->is_visited(this)) {
     return;
   }
-  // TODO: install symbols from anscestor classes
-  // Install symbols from this class
-  classtable->method_table.enterscope();
-  classtable->symtab.enterscope();
-  classtable->symtab.addid(self, this);
-  // TODO: Semantic analysis for this class
-  // First, check all attributes (and install them to the symbol table)
+  // 1st pass : installing symbols, from ancestor classes to this class
+  install_features(classtable);
+  // 2nd pass : undefined symbol/type check
+  // 3rd pass : annotate types
+  // 4th pass : check types
   for (int i = features->first(); features->more(i); i = features->next(i)) {
     auto feature = features->nth(i);
-    if (feature->is_method()) {
-      continue;
-    }
     feature->semant(classtable);
   }
-  // Second, check all methods (and add them to the symbol table inside)
-  for (int i = features->first(); features->more(i); i = features->next(i)) {
-    auto feature = features->nth(i);
-    if (!feature->is_method()) {
-      continue;
-    }
-    feature->semant(classtable);
-  }
-  classtable->symtab.exitscope();
-  classtable->method_table.exitscope();
+  exit_scope(classtable);
 
   // Mark this class as visited
   classtable->mark_visited(this);
@@ -367,12 +408,6 @@ void class__class::semant(ClassTableP classtable) {
 void method_class::semant(ClassTableP classtable) {
   if (semant_debug) {
     std::cout << "method_class::semant" << std::endl;
-  }
-  if (classtable->method_table.lookup(name) != NULL) {
-    classtable->semant_error(this)
-        << "Method " << name << " is multiply defined." << std::endl;
-  } else {
-    classtable->method_table.addid(name, this);
   }
   if (classtable->lookup_class(return_type) == NULL) {
     classtable->semant_error(this) << "Undefined return type " << return_type
@@ -394,13 +429,6 @@ void attr_class::semant(ClassTableP classtable) {
     std::cout << "attr_class::semant" << std::endl;
   }
   init->semant(classtable);
-  if (classtable->symtab.lookup(name) != NULL) {
-    classtable->semant_error(this)
-        << "Attribute " << name << " is multiply defined in class."
-        << std::endl;
-  } else {
-    classtable->symtab.addid(name, this);
-  }
   if (classtable->lookup_class(type_decl) == NULL) {
     classtable->semant_error(this) << "Class " << type_decl << " of attribute "
                                    << name << " is undefined." << std::endl;

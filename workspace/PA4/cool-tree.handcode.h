@@ -63,7 +63,9 @@ typedef ClassTable *ClassTableP;
   virtual void dump_with_types(ostream &, int) = 0;                            \
   virtual void set_parent(Class_ parentnd) = 0;                                \
   virtual Class_ get_parent() = 0;                                             \
-  virtual void semant(ClassTableP classtable) = 0;
+  virtual void semant(ClassTableP classtable) = 0;                             \
+  virtual void install_features(ClassTableP classtable) = 0;                   \
+  virtual void exit_scope(ClassTableP classtable) = 0;
 
 #define class__EXTRAS                                                          \
   Symbol get_name() { return name; }                                           \
@@ -73,16 +75,20 @@ typedef ClassTable *ClassTableP;
   Class_ get_parent() { return parentnd; }                                     \
   void dump_with_types(ostream &, int);                                        \
   void semant(ClassTableP classtable);                                         \
+  void install_features(ClassTableP classtable);                               \
+  void exit_scope(ClassTableP classtable);                                     \
                                                                                \
 protected:                                                                     \
   Class_ parentnd = NULL;
 
 #define Feature_EXTRAS                                                         \
+  virtual Symbol get_name() = 0;                                               \
   virtual bool is_method() = 0;                                                \
   virtual void semant(ClassTableP classtable) = 0;                             \
   virtual void dump_with_types(ostream &, int) = 0;
 
 #define Feature_SHARED_EXTRAS                                                  \
+  Symbol get_name() { return name; }                                           \
   void dump_with_types(ostream &, int);                                        \
   bool is_method();                                                            \
   void semant(ClassTableP classtable);

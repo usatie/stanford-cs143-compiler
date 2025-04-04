@@ -1,6 +1,5 @@
 	-1 (assignment)	 Valid assignments
 	-1 (assignnoconform)	 Assignment with non conforming expression
-	-1 (attroverride)	 Attempt to override parent's attribute
 	-1 (badargs1)	 Non-conforming parameter type in dispatch
 	-1 (badarith)	 Addition with non-int argument
 	-1 (baddispatch)	 Method only in child class, attempted dispatch from parent class
