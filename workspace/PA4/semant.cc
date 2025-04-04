@@ -390,9 +390,6 @@ void class__class::semant(ClassTableP classtable) {
   if (semant_debug) {
     std::cout << "class__class::semant" << std::endl;
   }
-  if (classtable->is_visited(this)) {
-    return;
-  }
   // 1st pass : installing symbols, from ancestor classes to this class
   install_features(classtable);
   // 2nd pass : undefined symbol/type check
@@ -403,9 +400,6 @@ void class__class::semant(ClassTableP classtable) {
     feature->semant(classtable);
   }
   exit_scope(classtable);
-
-  // Mark this class as visited
-  classtable->mark_visited(this);
 }
 
 void method_class::semant(ClassTableP classtable) {
@@ -654,9 +648,3 @@ void program_class::semant() {
 Class_ ClassTable::lookup_class(Symbol name) {
   return class_table.lookup(name);
 }
-
-bool ClassTable::is_visited(Class_ c) {
-  return class_table.probe(c->get_name()) != NULL;
-}
-
-void ClassTable::mark_visited(Class_ c) { class_table.addid(c->get_name(), c); }

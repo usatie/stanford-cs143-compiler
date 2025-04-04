@@ -45,8 +45,6 @@ public:
   void check_type();
   bool has_cyclic_inheritance(Class_ orig, Class_ curr);
   Class_ lookup_class(Symbol name);
-  bool is_visited(Class_ curr);
-  void mark_visited(Class_ curr);
 };
 
 #endif
