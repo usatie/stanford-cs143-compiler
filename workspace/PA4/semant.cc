@@ -387,9 +387,6 @@ bool method_class::is_method() { return true; }
 bool attr_class::is_method() { return false; }
 
 void class__class::semant(ClassTableP classtable) {
-  if (semant_debug) {
-    std::cout << "class__class::semant" << std::endl;
-  }
   // 1st pass : installing symbols, from ancestor classes to this class
   install_features(classtable);
   // 2nd pass : undefined symbol/type check
@@ -403,9 +400,6 @@ void class__class::semant(ClassTableP classtable) {
 }
 
 void method_class::semant(ClassTableP classtable) {
-  if (semant_debug) {
-    std::cout << "method_class::semant" << std::endl;
-  }
   if (classtable->lookup_class(return_type) == NULL) {
     classtable->semant_error(this) << "Undefined return type " << return_type
                                    << " in method " << name << "." << std::endl;
@@ -422,9 +416,6 @@ void method_class::semant(ClassTableP classtable) {
 }
 
 void attr_class::semant(ClassTableP classtable) {
-  if (semant_debug) {
-    std::cout << "attr_class::semant" << std::endl;
-  }
   init->semant(classtable);
   if (classtable->lookup_class(type_decl) == NULL) {
     classtable->semant_error(this) << "Class " << type_decl << " of attribute "
@@ -433,9 +424,6 @@ void attr_class::semant(ClassTableP classtable) {
 }
 
 void formal_class::semant(ClassTableP classtable) {
-  if (semant_debug) {
-    std::cout << "formal_class::semant" << std::endl;
-  }
   if (name == self) {
     classtable->semant_error(this)
         << "'self' cannot be the name of a formal parameter." << std::endl;
@@ -583,9 +571,6 @@ void assign_class::semant(ClassTableP classtable) {
 }
 
 void object_class::semant(ClassTableP classtable) {
-  if (semant_debug) {
-    std::cout << "object_class::semant" << std::endl;
-  }
   if (classtable->object_table.lookup(name) == NULL) {
     classtable->semant_error(this)
         << "Undeclared identifier " << name << "." << std::endl;
