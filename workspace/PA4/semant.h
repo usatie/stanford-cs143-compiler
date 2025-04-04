@@ -31,7 +31,7 @@ private:
   Class_ visiting;
 
 public:
-  SymTab symtab;
+  SymTab object_table;
   SymTab method_table;
   InternalClassTable branch_table;
   ClassTable(Classes);

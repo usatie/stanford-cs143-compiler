@@ -321,8 +321,8 @@ void class__class::install_features(ClassTable *classtable) {
   // Attributes:
   //   1. Inherited attributes cannot be redefined.
   classtable->method_table.enterscope();
-  classtable->symtab.enterscope();
-  classtable->symtab.addid(self, this);
+  classtable->object_table.enterscope();
+  classtable->object_table.addid(self, this);
   for (int i = features->first(); features->more(i); i = features->next(i)) {
     auto feature = features->nth(i);
     if (feature->is_method()) {
@@ -340,12 +340,12 @@ void class__class::install_features(ClassTable *classtable) {
       if (feature->get_name() == self) {
         classtable->semant_error(feature)
             << "'self' cannot be the name of an attribute." << std::endl;
-      } else if (classtable->symtab.lookup(feature->get_name()) != NULL) {
+      } else if (classtable->object_table.lookup(feature->get_name()) != NULL) {
         classtable->semant_error(feature)
             << "Attribute " << feature->get_name()
             << " is multiply defined in class." << std::endl;
       } else {
-        classtable->symtab.addid(feature->get_name(), feature);
+        classtable->object_table.addid(feature->get_name(), feature);
       }
     }
   }
@@ -354,7 +354,7 @@ void class__class::install_features(ClassTable *classtable) {
 void class__class::exit_scope(ClassTable *classtable) {
   // Exit the scope of the class
   classtable->method_table.exitscope();
-  classtable->symtab.exitscope();
+  classtable->object_table.exitscope();
   // Exit the scope of the ancestor classes
   auto parent = classtable->lookup_class(get_parent_sym());
   if (parent != NULL) {
@@ -411,14 +411,14 @@ void method_class::semant(ClassTableP classtable) {
                                    << " in method " << name << "." << std::endl;
   }
   // Install the names of the formals in the symbol table
-  classtable->symtab.enterscope();
+  classtable->object_table.enterscope();
   for (int i = formals->first(); formals->more(i); i = formals->next(i)) {
     auto formal = formals->nth(i);
     formal->semant(classtable);
   }
   // TODO: Check if expr type matches return_type
   expr->semant(classtable);
-  classtable->symtab.exitscope();
+  classtable->object_table.exitscope();
 }
 
 void attr_class::semant(ClassTableP classtable) {
@@ -439,11 +439,11 @@ void formal_class::semant(ClassTableP classtable) {
   if (name == self) {
     classtable->semant_error(this)
         << "'self' cannot be the name of a formal parameter." << std::endl;
-  } else if (classtable->symtab.probe(name) != NULL) {
+  } else if (classtable->object_table.probe(name) != NULL) {
     classtable->semant_error(this)
         << "Formal parameter " << name << " is multiply defined." << std::endl;
   } else {
-    classtable->symtab.addid(name, this);
+    classtable->object_table.addid(name, this);
   }
   if (classtable->lookup_class(type_decl) == NULL) {
     classtable->semant_error(this)
@@ -501,15 +501,15 @@ void let_class::semant(ClassTableP classtable) { /* TODO: Implement */
         << " is undefined." << std::endl;
   }
   // TODO: Check if the type_decl and type(init) matches
-  classtable->symtab.enterscope();
+  classtable->object_table.enterscope();
   if (identifier == self) {
     classtable->semant_error(this)
         << "'self' cannot be bound in a 'let' expression." << std::endl;
   } else {
-    classtable->symtab.addid(identifier, this);
+    classtable->object_table.addid(identifier, this);
   }
   body->semant(classtable);
-  classtable->symtab.exitscope();
+  classtable->object_table.exitscope();
 }
 void block_class::semant(ClassTableP classtable) {
   for (int i = body->first(); body->more(i); i = body->next(i)) {
@@ -527,11 +527,11 @@ void typcase_class::semant(ClassTableP classtable) {
 }
 
 void branch_class::semant(ClassTableP classtable) {
-  classtable->symtab.enterscope();
+  classtable->object_table.enterscope();
   if (name == self) {
     classtable->semant_error(this) << "'self' bound in 'case'." << std::endl;
   } else {
-    classtable->symtab.addid(name, this);
+    classtable->object_table.addid(name, this);
   }
   auto type = classtable->lookup_class(type_decl);
   if (type == NULL) {
@@ -545,7 +545,7 @@ void branch_class::semant(ClassTableP classtable) {
     classtable->branch_table.addid(type_decl, type);
   }
   expr->semant(classtable);
-  classtable->symtab.exitscope();
+  classtable->object_table.exitscope();
 }
 void loop_class::semant(ClassTableP classtable) {
   pred->semant(classtable);
@@ -575,7 +575,7 @@ void static_dispatch_class::semant(
 void assign_class::semant(ClassTableP classtable) {
   if (name == self) {
     classtable->semant_error(this) << "Cannot assign to 'self'." << std::endl;
-  } else if (classtable->symtab.lookup(name) == NULL) {
+  } else if (classtable->object_table.lookup(name) == NULL) {
     classtable->semant_error(this)
         << "Assignment to undeclared variable " << name << "." << std::endl;
   }
@@ -586,7 +586,7 @@ void object_class::semant(ClassTableP classtable) {
   if (semant_debug) {
     std::cout << "object_class::semant" << std::endl;
   }
-  if (classtable->symtab.lookup(name) == NULL) {
+  if (classtable->object_table.lookup(name) == NULL) {
     classtable->semant_error(this)
         << "Undeclared identifier " << name << "." << std::endl;
   }
