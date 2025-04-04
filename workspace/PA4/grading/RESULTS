@@ -28,7 +28,6 @@
 	-1 (isvoid)	 isvoid expressions
 	-1 (letinit)	 Let with initialization (legal)
 	-1 (letnoinit)	 Let without initialization (legal)
-	-1 (letself)	 Let with self in binding (illegal)
 	-1 (letselftype)	 Let with SELF_TYPE variables (legal)
 	-1 (letshadows)	 Let with a variable shadowing one in an outer scope
 	-1 (letbadinit)	 Let initization with nonconforming type
@@ -47,8 +46,6 @@
 	-1 (overridingmethod4)	 Illegal method override - different param types
 	-1 (signaturechange)	 Method override with different number of params
 	-1 (scopes)	 Scope test (legal)
-	-1 (self-assignment)	 Assignment to self (illegal)
-	-1 (selfinformalparameter)	 Self as name of a formal parameter (illegal)
 	-1 (selftyperedeclared)	 SELF_TYPE redeclared (used a class name)
 	-1 (simplearith)	 Some simple arithmetic exprs
 	-1 (simplecase)	 A simple case expr

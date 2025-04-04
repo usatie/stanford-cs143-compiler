@@ -337,7 +337,10 @@ void class__class::install_features(ClassTable *classtable) {
         classtable->method_table.addid(feature->get_name(), feature);
       }
     } else {
-      if (classtable->symtab.lookup(feature->get_name()) != NULL) {
+      if (feature->get_name() == self) {
+        classtable->semant_error(feature)
+            << "'self' cannot be the name of an attribute." << std::endl;
+      } else if (classtable->symtab.lookup(feature->get_name()) != NULL) {
         classtable->semant_error(feature)
             << "Attribute " << feature->get_name()
             << " is multiply defined in class." << std::endl;
@@ -439,7 +442,10 @@ void formal_class::semant(ClassTableP classtable) {
   if (semant_debug) {
     std::cout << "formal_class::semant" << std::endl;
   }
-  if (classtable->symtab.probe(name) != NULL) {
+  if (name == self) {
+    classtable->semant_error(this)
+        << "'self' cannot be the name of a formal parameter." << std::endl;
+  } else if (classtable->symtab.probe(name) != NULL) {
     classtable->semant_error(this)
         << "Formal parameter " << name << " is multiply defined." << std::endl;
   } else {
@@ -502,7 +508,12 @@ void let_class::semant(ClassTableP classtable) { /* TODO: Implement */
   }
   // TODO: Check if the type_decl and type(init) matches
   classtable->symtab.enterscope();
-  classtable->symtab.addid(identifier, this);
+  if (identifier == self) {
+    classtable->semant_error(this)
+        << "'self' cannot be bound in a 'let' expression." << std::endl;
+  } else {
+    classtable->symtab.addid(identifier, this);
+  }
   body->semant(classtable);
   classtable->symtab.exitscope();
 }
@@ -511,7 +522,29 @@ void block_class::semant(ClassTableP classtable) {
     body->nth(i)->semant(classtable);
   }
 }
-void typcase_class::semant(ClassTableP classtable) { /* TODO: Implement */
+void typcase_class::semant(ClassTableP classtable) {
+  expr->semant(classtable);
+  for (int i = cases->first(); cases->more(i); i = cases->next(i)) {
+    auto branch = cases->nth(i);
+    // TODO: Check duplicate branch for the same type
+    branch->semant(classtable);
+  }
+}
+
+void branch_class::semant(ClassTableP classtable) {
+  classtable->symtab.enterscope();
+  if (name == self) {
+    classtable->semant_error(this) << "'self' bound in 'case'." << std::endl;
+  } else {
+    classtable->symtab.addid(name, this);
+  }
+  if (classtable->lookup_class(type_decl) == NULL) {
+    classtable->semant_error(this)
+        << "Class " << type_decl << " of case-bound identifier " << name
+        << " is undefined." << std::endl;
+  }
+  expr->semant(classtable);
+  classtable->symtab.exitscope();
 }
 void loop_class::semant(ClassTableP classtable) {
   pred->semant(classtable);
@@ -539,7 +572,9 @@ void static_dispatch_class::semant(
   }
 }
 void assign_class::semant(ClassTableP classtable) {
-  if (classtable->symtab.lookup(name) == NULL) {
+  if (name == self) {
+    classtable->semant_error(this) << "Cannot assign to 'self'." << std::endl;
+  } else if (classtable->symtab.lookup(name) == NULL) {
     classtable->semant_error(this)
         << "Assignment to undeclared variable " << name << "." << std::endl;
   }

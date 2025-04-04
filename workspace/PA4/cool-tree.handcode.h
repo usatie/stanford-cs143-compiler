@@ -101,9 +101,13 @@ protected:                                                                     \
   void dump_with_types(ostream &, int);                                        \
   void semant(ClassTableP classtable);
 
-#define Case_EXTRAS virtual void dump_with_types(ostream &, int) = 0;
+#define Case_EXTRAS                                                            \
+  virtual void dump_with_types(ostream &, int) = 0;                            \
+  virtual void semant(ClassTableP classtable) = 0;
 
-#define branch_EXTRAS void dump_with_types(ostream &, int);
+#define branch_EXTRAS                                                          \
+  void dump_with_types(ostream &, int);                                        \
+  void semant(ClassTableP classtable);
 
 #define Expression_EXTRAS                                                      \
   Symbol type;                                                                 \
