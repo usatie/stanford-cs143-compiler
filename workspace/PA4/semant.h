@@ -33,6 +33,7 @@ private:
 public:
   SymTab symtab;
   SymTab method_table;
+  InternalClassTable branch_table;
   ClassTable(Classes);
   int errors() { return semant_errors; }
   ostream &semant_error();

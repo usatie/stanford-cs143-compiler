@@ -11,7 +11,6 @@
 	-1 (badwhilecond)	 While test has error
 	-1 (basic)	 Simple program with a sequence of expressions
 	-1 (basicclassestree)	 Test of inheritance tree (Object as ansestor of everything)
-	-1 (caseidenticalbranch)	 Duplicate branch in a case expr
 	-1 (cells)	 Complex program
 	-1 (classes)	 Various classes with inheritance and overriding (legal)
 	-1 (compare)	 Legal equality comparison

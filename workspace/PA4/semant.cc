@@ -524,11 +524,12 @@ void block_class::semant(ClassTableP classtable) {
 }
 void typcase_class::semant(ClassTableP classtable) {
   expr->semant(classtable);
+  classtable->branch_table.enterscope();
   for (int i = cases->first(); cases->more(i); i = cases->next(i)) {
     auto branch = cases->nth(i);
-    // TODO: Check duplicate branch for the same type
     branch->semant(classtable);
   }
+  classtable->branch_table.exitscope();
 }
 
 void branch_class::semant(ClassTableP classtable) {
@@ -538,10 +539,16 @@ void branch_class::semant(ClassTableP classtable) {
   } else {
     classtable->symtab.addid(name, this);
   }
-  if (classtable->lookup_class(type_decl) == NULL) {
+  auto type = classtable->lookup_class(type_decl);
+  if (type == NULL) {
     classtable->semant_error(this)
         << "Class " << type_decl << " of case-bound identifier " << name
         << " is undefined." << std::endl;
+  } else if (classtable->branch_table.probe(type_decl) != NULL) {
+    classtable->semant_error(this) << "Duplicate branch " << type_decl
+                                   << " in case statement." << std::endl;
+  } else {
+    classtable->branch_table.addid(type_decl, type);
   }
   expr->semant(classtable);
   classtable->symtab.exitscope();
