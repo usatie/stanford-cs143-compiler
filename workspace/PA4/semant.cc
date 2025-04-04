@@ -448,36 +448,49 @@ void new__class::semant(ClassTableP classtable) {
         << "'new' used with undefined class " << type_name << "." << std::endl;
   }
 }
-void string_const_class::semant(ClassTableP classtable) {}
-void bool_const_class::semant(ClassTableP classtable) {}
-void int_const_class::semant(ClassTableP classtable) {}
-void comp_class::semant(ClassTableP classtable) { e1->semant(classtable); }
+void string_const_class::semant(ClassTableP classtable) { set_type(Str); }
+void bool_const_class::semant(ClassTableP classtable) { set_type(Bool); }
+void int_const_class::semant(ClassTableP classtable) { set_type(Int); }
+void comp_class::semant(ClassTableP classtable) {
+  set_type(Bool);
+  e1->semant(classtable);
+}
 void leq_class::semant(ClassTableP classtable) {
+  set_type(Bool);
   e1->semant(classtable);
   e2->semant(classtable);
 }
 void eq_class::semant(ClassTableP classtable) {
+  set_type(Bool);
   e1->semant(classtable);
   e2->semant(classtable);
 }
 void lt_class::semant(ClassTableP classtable) {
+  set_type(Bool);
   e1->semant(classtable);
   e2->semant(classtable);
 }
-void neg_class::semant(ClassTableP classtable) { e1->semant(classtable); }
+void neg_class::semant(ClassTableP classtable) {
+  set_type(Int);
+  e1->semant(classtable);
+}
 void divide_class::semant(ClassTableP classtable) {
+  set_type(Int);
   e1->semant(classtable);
   e2->semant(classtable);
 }
 void mul_class::semant(ClassTableP classtable) {
+  set_type(Int);
   e1->semant(classtable);
   e2->semant(classtable);
 }
 void sub_class::semant(ClassTableP classtable) {
+  set_type(Int);
   e1->semant(classtable);
   e2->semant(classtable);
 }
 void plus_class::semant(ClassTableP classtable) {
+  set_type(Int);
   e1->semant(classtable);
   e2->semant(classtable);
 }
@@ -487,6 +500,8 @@ void let_class::semant(ClassTableP classtable) { /* TODO: Implement */
     classtable->semant_error(this)
         << "Class " << type_decl << " of let-bound identifier " << identifier
         << " is undefined." << std::endl;
+  } else {
+    set_type(type_decl);
   }
   // TODO: Check if the type_decl and type(init) matches
   classtable->object_table.enterscope();
@@ -500,11 +515,16 @@ void let_class::semant(ClassTableP classtable) { /* TODO: Implement */
   classtable->object_table.exitscope();
 }
 void block_class::semant(ClassTableP classtable) {
+  // TODO: Empty block check
   for (int i = body->first(); body->more(i); i = body->next(i)) {
     body->nth(i)->semant(classtable);
+    // Set type of the last expression
+    set_type(body->nth(i)->get_type());
   }
 }
 void typcase_class::semant(ClassTableP classtable) {
+  // TODO: Set type
+  // TODO: Empty case check
   expr->semant(classtable);
   classtable->branch_table.enterscope();
   for (int i = cases->first(); cases->more(i); i = cases->next(i)) {
@@ -536,15 +556,19 @@ void branch_class::semant(ClassTableP classtable) {
   classtable->object_table.exitscope();
 }
 void loop_class::semant(ClassTableP classtable) {
+  set_type(Object);
   pred->semant(classtable);
   body->semant(classtable);
 }
 void cond_class::semant(ClassTableP classtable) {
   pred->semant(classtable);
+  // TODO: Check if pred is of type Bool
   then_exp->semant(classtable);
   else_exp->semant(classtable);
+  // TODO: Set type (join of then and else)
 }
 void dispatch_class::semant(ClassTableP classtable) {
+  // TODO: Set type of the method
   expr->semant(classtable);
   // TODO: Check if name is a method of the class of the expr
   for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
@@ -553,6 +577,7 @@ void dispatch_class::semant(ClassTableP classtable) {
 }
 void static_dispatch_class::semant(
     ClassTableP classtable) { /* TODO: Implement */
+  // TODO: Set type of the method
   expr->semant(classtable);
   // TODO: Check if typename is a parent class of the class of the expr
   // TODO: Check if name is a method of the parent class
@@ -561,6 +586,8 @@ void static_dispatch_class::semant(
   }
 }
 void assign_class::semant(ClassTableP classtable) {
+  // TODO: Set type of the identifier
+  // TODO: Check if the expr and identifier have the same type
   if (name == self) {
     classtable->semant_error(this) << "Cannot assign to 'self'." << std::endl;
   } else if (classtable->object_table.lookup(name) == NULL) {
@@ -571,6 +598,7 @@ void assign_class::semant(ClassTableP classtable) {
 }
 
 void object_class::semant(ClassTableP classtable) {
+  // TODO: Set type of the identifier
   if (classtable->object_table.lookup(name) == NULL) {
     classtable->semant_error(this)
         << "Undeclared identifier " << name << "." << std::endl;
