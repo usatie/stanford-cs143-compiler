@@ -64,7 +64,7 @@ typedef ClassTable *ClassTableP;
   virtual void dump_with_types(ostream &, int) = 0;                            \
   virtual void set_parent(Class_ parentnd) = 0;                                \
   virtual Class_ get_parent() = 0;                                             \
-  virtual void semant(ClassTableP classtable) = 0;                             \
+  virtual void semant_name_scope(ClassTableP classtable) = 0;                  \
   virtual void install_features(ClassTableP classtable) = 0;                   \
   virtual void exit_scope(ClassTableP classtable) = 0;                         \
   virtual method_class *lookup_method(Symbol name) = 0;
@@ -76,7 +76,7 @@ typedef ClassTable *ClassTableP;
   void set_parent(Class_ parentnd) { parentnd = parentnd; }                    \
   Class_ get_parent() { return parentnd; }                                     \
   void dump_with_types(ostream &, int);                                        \
-  void semant(ClassTableP classtable);                                         \
+  void semant_name_scope(ClassTableP classtable);                              \
   void install_features(ClassTableP classtable);                               \
   void exit_scope(ClassTableP classtable);                                     \
   method_class *lookup_method(Symbol name);                                    \
@@ -87,14 +87,14 @@ protected:                                                                     \
 #define Feature_EXTRAS                                                         \
   virtual Symbol get_name() = 0;                                               \
   virtual bool is_method() = 0;                                                \
-  virtual void semant(ClassTableP classtable) = 0;                             \
+  virtual void semant_name_scope(ClassTableP classtable) = 0;                  \
   virtual void dump_with_types(ostream &, int) = 0;
 
 #define Feature_SHARED_EXTRAS                                                  \
   Symbol get_name() { return name; }                                           \
   void dump_with_types(ostream &, int);                                        \
   bool is_method();                                                            \
-  void semant(ClassTableP classtable);
+  void semant_name_scope(ClassTableP classtable);
 
 #define attr_EXTRAS                                                            \
   Symbol get_type_decl() { return type_decl; }
@@ -104,20 +104,20 @@ protected:                                                                     \
 
 #define Formal_EXTRAS                                                          \
   virtual void dump_with_types(ostream &, int) = 0;                            \
-  virtual void semant(ClassTableP classtable) = 0;
+  virtual void semant_name_scope(ClassTableP classtable) = 0;
 
 #define formal_EXTRAS                                                          \
   void dump_with_types(ostream &, int);                                        \
-  void semant(ClassTableP classtable);
+  void semant_name_scope(ClassTableP classtable);
 
 #define Case_EXTRAS                                                            \
   virtual void dump_with_types(ostream &, int) = 0;                            \
-  virtual void semant(ClassTableP classtable) = 0;                             \
+  virtual void semant_name_scope(ClassTableP classtable) = 0;                  \
   virtual Symbol get_type() = 0;
 
 #define branch_EXTRAS                                                          \
   void dump_with_types(ostream &, int);                                        \
-  void semant(ClassTableP classtable);                                         \
+  void semant_name_scope(ClassTableP classtable);                              \
   Symbol get_type() { return expr->get_type(); }
 
 #define Expression_EXTRAS                                                      \
@@ -130,10 +130,10 @@ protected:                                                                     \
   virtual void dump_with_types(ostream &, int) = 0;                            \
   void dump_type(ostream &, int);                                              \
   Expression_class() { type = (Symbol)NULL; }                                  \
-  virtual void semant(ClassTableP classtable) = 0;
+  virtual void semant_name_scope(ClassTableP classtable) = 0;
 
 #define Expression_SHARED_EXTRAS                                               \
   void dump_with_types(ostream &, int);                                        \
-  void semant(ClassTableP classtable);
+  void semant_name_scope(ClassTableP classtable);
 
 #endif

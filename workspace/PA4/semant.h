@@ -41,7 +41,7 @@ public:
   ostream &semant_error(tree_node *t);
   ostream &semant_error(Symbol filename, tree_node *t);
 
-  void check_name_and_scope(Classes classes);
+  void semant_name_scope(Classes classes);
   void check_type();
   bool has_cyclic_inheritance(Class_ orig, Class_ curr);
   Class_ lookup_class(Symbol name);

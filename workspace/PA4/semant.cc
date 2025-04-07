@@ -390,7 +390,7 @@ bool ClassTable::conforms_to(Symbol A, Symbol B) {
 bool method_class::is_method() { return true; }
 bool attr_class::is_method() { return false; }
 
-void class__class::semant(ClassTableP classtable) {
+void class__class::semant_name_scope(ClassTableP classtable) {
   // 1st pass : installing symbols, from ancestor classes to this class
   install_features(classtable);
   // 2nd pass : undefined symbol/type check
@@ -398,12 +398,12 @@ void class__class::semant(ClassTableP classtable) {
   // 4th pass : check types
   for (int i = features->first(); features->more(i); i = features->next(i)) {
     auto feature = features->nth(i);
-    feature->semant(classtable);
+    feature->semant_name_scope(classtable);
   }
   exit_scope(classtable);
 }
 
-void method_class::semant(ClassTableP classtable) {
+void method_class::semant_name_scope(ClassTableP classtable) {
   bool is_return_type_defined = classtable->lookup_class(return_type) != NULL;
   if (!is_return_type_defined) {
     classtable->semant_error(this) << "Undefined return type " << return_type
@@ -413,10 +413,10 @@ void method_class::semant(ClassTableP classtable) {
   classtable->object_table.enterscope();
   for (int i = formals->first(); formals->more(i); i = formals->next(i)) {
     auto formal = formals->nth(i);
-    formal->semant(classtable);
+    formal->semant_name_scope(classtable);
   }
   // Check if expr type matches return_type
-  expr->semant(classtable);
+  expr->semant_name_scope(classtable);
   // TODO: Only check return_type when the expr has no errors?
   if (is_return_type_defined &&
       !classtable->conforms_to(expr->get_type(), return_type)) {
@@ -428,15 +428,15 @@ void method_class::semant(ClassTableP classtable) {
   classtable->object_table.exitscope();
 }
 
-void attr_class::semant(ClassTableP classtable) {
-  init->semant(classtable);
+void attr_class::semant_name_scope(ClassTableP classtable) {
+  init->semant_name_scope(classtable);
   if (classtable->lookup_class(type_decl) == NULL) {
     classtable->semant_error(this) << "Class " << type_decl << " of attribute "
                                    << name << " is undefined." << std::endl;
   }
 }
 
-void formal_class::semant(ClassTableP classtable) {
+void formal_class::semant_name_scope(ClassTableP classtable) {
   auto type_cls = classtable->lookup_class(type_decl);
   if (name == self) {
     classtable->semant_error(this)
@@ -458,9 +458,11 @@ void formal_class::semant(ClassTableP classtable) {
   }
 }
 
-void no_expr_class::semant(ClassTableP classtable) {}
-void isvoid_class::semant(ClassTableP classtable) { e1->semant(classtable); }
-void new__class::semant(ClassTableP classtable) {
+void no_expr_class::semant_name_scope(ClassTableP classtable) {}
+void isvoid_class::semant_name_scope(ClassTableP classtable) {
+  e1->semant_name_scope(classtable);
+}
+void new__class::semant_name_scope(ClassTableP classtable) {
   auto type = classtable->lookup_class(type_name);
   if (type == NULL) {
     classtable->semant_error(this)
@@ -470,54 +472,60 @@ void new__class::semant(ClassTableP classtable) {
     set_type(type_name);
   }
 }
-void string_const_class::semant(ClassTableP classtable) { set_type(Str); }
-void bool_const_class::semant(ClassTableP classtable) { set_type(Bool); }
-void int_const_class::semant(ClassTableP classtable) { set_type(Int); }
-void comp_class::semant(ClassTableP classtable) {
+void string_const_class::semant_name_scope(ClassTableP classtable) {
+  set_type(Str);
+}
+void bool_const_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
-  e1->semant(classtable);
 }
-void leq_class::semant(ClassTableP classtable) {
+void int_const_class::semant_name_scope(ClassTableP classtable) {
+  set_type(Int);
+}
+void comp_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
-  e1->semant(classtable);
-  e2->semant(classtable);
+  e1->semant_name_scope(classtable);
 }
-void eq_class::semant(ClassTableP classtable) {
+void leq_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
-  e1->semant(classtable);
-  e2->semant(classtable);
+  e1->semant_name_scope(classtable);
+  e2->semant_name_scope(classtable);
 }
-void lt_class::semant(ClassTableP classtable) {
+void eq_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
-  e1->semant(classtable);
-  e2->semant(classtable);
+  e1->semant_name_scope(classtable);
+  e2->semant_name_scope(classtable);
 }
-void neg_class::semant(ClassTableP classtable) {
+void lt_class::semant_name_scope(ClassTableP classtable) {
+  set_type(Bool);
+  e1->semant_name_scope(classtable);
+  e2->semant_name_scope(classtable);
+}
+void neg_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
-  e1->semant(classtable);
+  e1->semant_name_scope(classtable);
 }
-void divide_class::semant(ClassTableP classtable) {
+void divide_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
-  e1->semant(classtable);
-  e2->semant(classtable);
+  e1->semant_name_scope(classtable);
+  e2->semant_name_scope(classtable);
 }
-void mul_class::semant(ClassTableP classtable) {
+void mul_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
-  e1->semant(classtable);
-  e2->semant(classtable);
+  e1->semant_name_scope(classtable);
+  e2->semant_name_scope(classtable);
 }
-void sub_class::semant(ClassTableP classtable) {
+void sub_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
-  e1->semant(classtable);
-  e2->semant(classtable);
+  e1->semant_name_scope(classtable);
+  e2->semant_name_scope(classtable);
 }
-void plus_class::semant(ClassTableP classtable) {
+void plus_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
-  e1->semant(classtable);
-  e2->semant(classtable);
+  e1->semant_name_scope(classtable);
+  e2->semant_name_scope(classtable);
 }
-void let_class::semant(ClassTableP classtable) {
-  init->semant(classtable);
+void let_class::semant_name_scope(ClassTableP classtable) {
+  init->semant_name_scope(classtable);
   auto type_cls = classtable->lookup_class(type_decl);
   if (type_cls == NULL) {
     classtable->semant_error(this)
@@ -538,13 +546,13 @@ void let_class::semant(ClassTableP classtable) {
       classtable->object_table.addid(identifier, type_cls);
     }
   }
-  body->semant(classtable);
+  body->semant_name_scope(classtable);
   classtable->object_table.exitscope();
 }
-void block_class::semant(ClassTableP classtable) {
+void block_class::semant_name_scope(ClassTableP classtable) {
   // TODO: Empty block check
   for (int i = body->first(); body->more(i); i = body->next(i)) {
-    body->nth(i)->semant(classtable);
+    body->nth(i)->semant_name_scope(classtable);
     // Set type of the last expression
     set_type(body->nth(i)->get_type());
   }
@@ -563,20 +571,20 @@ Symbol ClassTable::join_type(Symbol s1, Symbol s2) {
   auto s2_class = lookup_class(s2);
   return join_type(s1_class->get_parent_sym(), s2_class->get_parent_sym());
 }
-void typcase_class::semant(ClassTableP classtable) {
+void typcase_class::semant_name_scope(ClassTableP classtable) {
   // TODO: Empty case check
-  expr->semant(classtable);
+  expr->semant_name_scope(classtable);
   classtable->branch_table.enterscope();
   set_type(Object);
   for (int i = cases->first(); cases->more(i); i = cases->next(i)) {
     auto branch = cases->nth(i);
-    branch->semant(classtable);
+    branch->semant_name_scope(classtable);
     set_type(classtable->join_type(branch->get_type(), get_type()));
   }
   classtable->branch_table.exitscope();
 }
 
-void branch_class::semant(ClassTableP classtable) {
+void branch_class::semant_name_scope(ClassTableP classtable) {
   classtable->object_table.enterscope();
   auto type = classtable->lookup_class(type_decl);
   if (name == self) {
@@ -598,23 +606,23 @@ void branch_class::semant(ClassTableP classtable) {
   } else {
     classtable->branch_table.addid(type_decl, type);
   }
-  expr->semant(classtable);
+  expr->semant_name_scope(classtable);
   classtable->object_table.exitscope();
 }
-void loop_class::semant(ClassTableP classtable) {
+void loop_class::semant_name_scope(ClassTableP classtable) {
   set_type(Object);
-  pred->semant(classtable);
-  body->semant(classtable);
+  pred->semant_name_scope(classtable);
+  body->semant_name_scope(classtable);
 }
-void cond_class::semant(ClassTableP classtable) {
-  pred->semant(classtable);
+void cond_class::semant_name_scope(ClassTableP classtable) {
+  pred->semant_name_scope(classtable);
   // TODO: Check if pred is of type Bool
-  then_exp->semant(classtable);
-  else_exp->semant(classtable);
+  then_exp->semant_name_scope(classtable);
+  else_exp->semant_name_scope(classtable);
   // TODO: Set type (join of then and else)
 }
-void dispatch_class::semant(ClassTableP classtable) {
-  expr->semant(classtable);
+void dispatch_class::semant_name_scope(ClassTableP classtable) {
+  expr->semant_name_scope(classtable);
   auto expr_type = expr->get_type();
   // Check if name is a method of the class of the expr
   auto expr_class = classtable->lookup_class(expr_type);
@@ -633,7 +641,7 @@ void dispatch_class::semant(ClassTableP classtable) {
     set_type(method->get_return_type());
   }
   for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
-    actual->nth(i)->semant(classtable);
+    actual->nth(i)->semant_name_scope(classtable);
   }
 }
 
@@ -647,16 +655,16 @@ method_class *class__class::lookup_method(Symbol name) {
   return NULL;
 }
 
-void static_dispatch_class::semant(ClassTableP classtable) {
+void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
   // TODO: Set type of the method
-  expr->semant(classtable);
+  expr->semant_name_scope(classtable);
   // TODO: Check if typename is a parent class of the class of the expr
   // TODO: Check if name is a method of the parent class
   for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
-    actual->nth(i)->semant(classtable);
+    actual->nth(i)->semant_name_scope(classtable);
   }
 }
-void assign_class::semant(ClassTableP classtable) {
+void assign_class::semant_name_scope(ClassTableP classtable) {
   auto identifier_cls = classtable->object_table.lookup(name);
   set_type(Object);
   if (name == self) {
@@ -667,12 +675,12 @@ void assign_class::semant(ClassTableP classtable) {
   } else {
     // Set type of the identifier
     set_type(identifier_cls->get_name());
-    expr->semant(classtable);
+    expr->semant_name_scope(classtable);
     // TODO: Check if the expr and identifier have the same type
   }
 }
 
-void object_class::semant(ClassTableP classtable) {
+void object_class::semant_name_scope(ClassTableP classtable) {
   auto object_type = classtable->object_table.lookup(name);
   if (object_type == NULL) {
     classtable->semant_error(this)
@@ -683,14 +691,14 @@ void object_class::semant(ClassTableP classtable) {
   }
 }
 
-void ClassTable::check_name_and_scope(Classes classes) {
+void ClassTable::semant_name_scope(Classes classes) {
   if (semant_debug) {
     std::cout << "Checking naming and scoping..." << std::endl;
   }
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
     visiting = classes->nth(i);
     class_table.enterscope();
-    visiting->semant(this);
+    visiting->semant_name_scope(this);
     class_table.exitscope();
   }
 }
@@ -726,7 +734,7 @@ void program_class::semant() {
     exit(1);
   }
   /* Check Naming and Scoping */
-  classtable->check_name_and_scope(classes);
+  classtable->semant_name_scope(classes);
   /* TODO: Type Checking */
   classtable->check_type();
 
