@@ -46,6 +46,7 @@ typedef list_node<Case> Cases_class;
 typedef Cases_class *Cases;
 
 class ClassTable;
+class method_class;
 typedef ClassTable *ClassTableP;
 
 #define Program_EXTRAS                                                         \
@@ -65,7 +66,8 @@ typedef ClassTable *ClassTableP;
   virtual Class_ get_parent() = 0;                                             \
   virtual void semant(ClassTableP classtable) = 0;                             \
   virtual void install_features(ClassTableP classtable) = 0;                   \
-  virtual void exit_scope(ClassTableP classtable) = 0;
+  virtual void exit_scope(ClassTableP classtable) = 0;                         \
+  virtual method_class *lookup_method(Symbol name) = 0;
 
 #define class__EXTRAS                                                          \
   Symbol get_name() { return name; }                                           \
@@ -77,6 +79,7 @@ typedef ClassTable *ClassTableP;
   void semant(ClassTableP classtable);                                         \
   void install_features(ClassTableP classtable);                               \
   void exit_scope(ClassTableP classtable);                                     \
+  method_class *lookup_method(Symbol name);                                    \
                                                                                \
 protected:                                                                     \
   Class_ parentnd = NULL;
@@ -93,6 +96,12 @@ protected:                                                                     \
   bool is_method();                                                            \
   void semant(ClassTableP classtable);
 
+#define attr_EXTRAS                                                            \
+  Symbol get_type_decl() { return type_decl; }
+
+#define method_EXTRAS                                                          \
+  Symbol get_return_type() { return return_type; }
+
 #define Formal_EXTRAS                                                          \
   virtual void dump_with_types(ostream &, int) = 0;                            \
   virtual void semant(ClassTableP classtable) = 0;
@@ -103,11 +112,13 @@ protected:                                                                     \
 
 #define Case_EXTRAS                                                            \
   virtual void dump_with_types(ostream &, int) = 0;                            \
-  virtual void semant(ClassTableP classtable) = 0;
+  virtual void semant(ClassTableP classtable) = 0;                             \
+  virtual Symbol get_type() = 0;
 
 #define branch_EXTRAS                                                          \
   void dump_with_types(ostream &, int);                                        \
-  void semant(ClassTableP classtable);
+  void semant(ClassTableP classtable);                                         \
+  Symbol get_type() { return expr->get_type(); }
 
 #define Expression_EXTRAS                                                      \
   Symbol type;                                                                 \

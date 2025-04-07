@@ -31,7 +31,7 @@ private:
   Class_ visiting;
 
 public:
-  SymTab object_table;
+  InternalClassTable object_table;
   SymTab method_table;
   InternalClassTable branch_table;
   ClassTable(Classes);
@@ -45,6 +45,8 @@ public:
   void check_type();
   bool has_cyclic_inheritance(Class_ orig, Class_ curr);
   Class_ lookup_class(Symbol name);
+  bool conforms_to(Symbol A, Symbol B);
+  Symbol join_type(Symbol s1, Symbol s2);
 };
 
 #endif
