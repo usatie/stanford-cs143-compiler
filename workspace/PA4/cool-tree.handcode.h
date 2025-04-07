@@ -100,15 +100,20 @@ protected:                                                                     \
   Symbol get_type_decl() { return type_decl; }
 
 #define method_EXTRAS                                                          \
-  Symbol get_return_type() { return return_type; }
+  Symbol get_return_type() { return return_type; }                             \
+  Formals get_formals() { return formals; }
 
 #define Formal_EXTRAS                                                          \
   virtual void dump_with_types(ostream &, int) = 0;                            \
-  virtual void semant_name_scope(ClassTableP classtable) = 0;
+  virtual void semant_name_scope(ClassTableP classtable) = 0;                  \
+  virtual Symbol get_type_decl() = 0;                                          \
+  virtual Symbol get_name() = 0;
 
 #define formal_EXTRAS                                                          \
   void dump_with_types(ostream &, int);                                        \
-  void semant_name_scope(ClassTableP classtable);
+  void semant_name_scope(ClassTableP classtable);                              \
+  Symbol get_type_decl() { return type_decl; }                                 \
+  Symbol get_name() { return name; }
 
 #define Case_EXTRAS                                                            \
   virtual void dump_with_types(ostream &, int) = 0;                            \

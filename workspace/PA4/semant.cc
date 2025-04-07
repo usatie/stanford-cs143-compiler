@@ -9,6 +9,9 @@
 extern int semant_debug;
 extern char *curr_filename;
 
+// TODO: Think more about the implementation of self to object_table (in order
+// to print SELF_TYPE)
+
 //////////////////////////////////////////////////////////////////////
 //
 // Symbols
@@ -639,8 +642,28 @@ void dispatch_class::semant_name_scope(ClassTableP classtable) {
       set_type(expr_type);
     }
   }
-  for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
-    actual->nth(i)->semant_name_scope(classtable);
+  if (method && actual->len() != method->get_formals()->len()) {
+    classtable->semant_error(this)
+        << "Method " << name << " called with wrong number of arguments."
+        << std::endl;
+  } else {
+    for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
+      auto actual_expr = actual->nth(i);
+      actual_expr->semant_name_scope(classtable);
+      if (method) {
+        auto formal = method->get_formals()->nth(i);
+        auto actual_type = actual_expr->get_type();
+        auto formal_type = formal->get_type_decl();
+        // Check if the actual type conforms to the formal type
+        if (!classtable->conforms_to(actual_type, formal_type)) {
+          classtable->semant_error(this)
+              << "In call of method " << name << ", type " << actual_type
+              << " of parameter " << formal->get_name()
+              << " does not conform to declared type " << formal_type << "."
+              << std::endl;
+        }
+      }
+    }
   }
 }
 
@@ -650,6 +673,7 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
   expr->semant_name_scope(classtable);
   auto left_class = classtable->lookup_class(expr->get_type());
   auto right_class = classtable->lookup_class(type_name);
+  auto method = classtable->lookup_method(right_class, name);
   if (!classtable->conforms_to(expr->get_type(), type_name)) {
     classtable->semant_error(this)
         << "Expression type " << expr->get_type()
@@ -657,7 +681,6 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
         << "." << std::endl;
     set_type(Object);
   } else {
-    auto method = classtable->lookup_method(right_class, name);
     // Check if name is a method of the parent class
     if (method == NULL) {
       classtable->semant_error(this)
@@ -671,8 +694,28 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
     }
   }
 
-  for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
-    actual->nth(i)->semant_name_scope(classtable);
+  if (method && actual->len() != method->get_formals()->len()) {
+    classtable->semant_error(this)
+        << "Method " << name << " called with wrong number of arguments."
+        << std::endl;
+  } else {
+    for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
+      auto actual_expr = actual->nth(i);
+      actual_expr->semant_name_scope(classtable);
+      if (method) {
+        auto formal = method->get_formals()->nth(i);
+        auto actual_type = actual_expr->get_type();
+        auto formal_type = formal->get_type_decl();
+        // Check if the actual type conforms to the formal type
+        if (!classtable->conforms_to(actual_type, formal_type)) {
+          classtable->semant_error(this)
+              << "In call of method " << name << ", type " << actual_type
+              << " of parameter " << formal->get_name()
+              << " does not conform to declared type " << formal_type << "."
+              << std::endl;
+        }
+      }
+    }
   }
 }
 

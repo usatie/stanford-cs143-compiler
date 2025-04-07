@@ -1,8 +1,6 @@
-	-1 (badargs1)	 Non-conforming parameter type in dispatch
 	-1 (badarith)	 Addition with non-int argument
 	-1 (badequalitytest)	 Int compared to String
 	-1 (badequalitytest2)	 Int compared to Bool
-	-1 (badmethodcallsitself)	 Method called with itself as parameter (wrong type)
 	-1 (badwhilecond)	 While test has error
 	-1 (cells)	 Complex program
 	-1 (cycleinmethods)	 Methods call each other in a cycle (legal)
