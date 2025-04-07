@@ -1,5 +1,7 @@
 class Main { main(): Int {42}; };
 
+class B {};
+
 class A {
     a: Int;
     self: Int; (* attribute `self` : 1st pass *)
@@ -9,7 +11,7 @@ class A {
     self(): Int { 42 }; (* Method name `self` is actually legal *)
     a: Int; (* multiple definition: 1st pass *)
     x:A <- self; (* This is legal *)
-    foo(x:A) : A {self <- self.copy()}; (* illegal: self is not a variable *)
+    foo(x:A) : A {self <- (new B).copy()}; (* illegal: self is not a variable *)
     z: Int <- case 42 of
       self: Int => 4242;
       self: A => 4343;

@@ -626,7 +626,7 @@ void dispatch_class::semant_name_scope(ClassTableP classtable) {
   auto expr_type = expr->get_type();
   // Check if name is a method of the class of the expr
   auto expr_class = classtable->lookup_class(expr_type);
-  auto method = expr_class->lookup_method(name);
+  auto method = classtable->lookup_method(expr_class, name);
   set_type(Object);
   if (method == NULL) {
     classtable->semant_error(this)
@@ -639,10 +639,25 @@ void dispatch_class::semant_name_scope(ClassTableP classtable) {
   } else {
     // Set type of the method
     set_type(method->get_return_type());
+    if (get_type() == SELF_TYPE) {
+      set_type(expr_type);
+    }
   }
   for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
     actual->nth(i)->semant_name_scope(classtable);
   }
+}
+
+method_class *ClassTable::lookup_method(Class_ cls, Symbol name) {
+  if (cls == NULL) {
+    return NULL;
+  }
+  auto method = cls->lookup_method(name);
+  if (method != NULL) {
+    return method;
+  }
+  auto parent = lookup_class(cls->get_parent_sym());
+  return lookup_method(parent, name);
 }
 
 method_class *class__class::lookup_method(Symbol name) {
@@ -667,16 +682,36 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
 void assign_class::semant_name_scope(ClassTableP classtable) {
   auto identifier_cls = classtable->object_table.lookup(name);
   set_type(Object);
-  if (name == self) {
-    classtable->semant_error(this) << "Cannot assign to 'self'." << std::endl;
-  } else if (identifier_cls == NULL) {
+  if (identifier_cls == NULL) {
     classtable->semant_error(this)
         << "Assignment to undeclared variable " << name << "." << std::endl;
   } else {
     // Set type of the identifier
-    set_type(identifier_cls->get_name());
+    if (name == self) {
+      classtable->semant_error(this) << "Cannot assign to 'self'." << std::endl;
+    }
     expr->semant_name_scope(classtable);
-    // TODO: Check if the expr and identifier have the same type
+    set_type(expr->get_type());
+    // Check if the expr conforms to identifier type
+    if (!classtable->conforms_to(expr->get_type(),
+                                 identifier_cls->get_name())) {
+      // TODO: This is to mimic reference coolc implementation
+      // But I don't think it's good way. They may have different
+      // implementation:
+      //   object_table[self] = SELF_TYPE // this may be reference
+      //   implementation object_table[self] = class A   // this is my
+      //   implementation
+      // But, then, how SELF_TYPE is resolved when it's needed to?
+      // Simply classtable->visiting can resolve this?
+      auto declared_type = identifier_cls->get_name();
+      if (name == self) {
+        declared_type = SELF_TYPE;
+      }
+      classtable->semant_error(this)
+          << "Type " << expr->get_type()
+          << " of assigned expression does not conform to declared type "
+          << declared_type << " of identifier " << name << "." << std::endl;
+    }
   }
 }
 
@@ -735,6 +770,10 @@ void program_class::semant() {
   }
   /* Check Naming and Scoping */
   classtable->semant_name_scope(classes);
+  if (classtable->errors()) {
+    cerr << "Compilation halted due to static semantic errors." << endl;
+    exit(1);
+  }
   /* TODO: Type Checking */
   classtable->check_type();
 
