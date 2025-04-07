@@ -631,18 +631,46 @@ void dispatch_class::semant_name_scope(ClassTableP classtable) {
   if (method == NULL) {
     classtable->semant_error(this)
         << "Dispatch to undefined method " << name << "." << std::endl;
-    //  } else if (method->get_formals()->len() != actual->len()) {
-    //	classtable->semant_error(this)
-    //		<< "Method " << name << " called with wrong number of
-    // arguments."
-    //		<< std::endl;
   } else {
     // Set type of the method
     set_type(method->get_return_type());
+    // TODO: We need to set the type of the method's class
     if (get_type() == SELF_TYPE) {
       set_type(expr_type);
     }
   }
+  for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
+    actual->nth(i)->semant_name_scope(classtable);
+  }
+}
+
+void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
+  // Check expr conforms to the type_name : e.g. `(new C)@B.f()`, where B should
+  // be the ancestor of C.
+  expr->semant_name_scope(classtable);
+  auto left_class = classtable->lookup_class(expr->get_type());
+  auto right_class = classtable->lookup_class(type_name);
+  if (!classtable->conforms_to(expr->get_type(), type_name)) {
+    classtable->semant_error(this)
+        << "Expression type " << expr->get_type()
+        << " does not conform to declared static dispatch type " << type_name
+        << "." << std::endl;
+    set_type(Object);
+  } else {
+    auto method = classtable->lookup_method(right_class, name);
+    // Check if name is a method of the parent class
+    if (method == NULL) {
+      classtable->semant_error(this)
+          << "Dispatch to undefined method " << name << "." << std::endl;
+    } else {
+      set_type(method->get_return_type());
+      // TODO: We need to set the type of the method's class
+      if (get_type() == SELF_TYPE) {
+        set_type(expr->get_type());
+      }
+    }
+  }
+
   for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
     actual->nth(i)->semant_name_scope(classtable);
   }
@@ -670,15 +698,6 @@ method_class *class__class::lookup_method(Symbol name) {
   return NULL;
 }
 
-void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
-  // TODO: Set type of the method
-  expr->semant_name_scope(classtable);
-  // TODO: Check if typename is a parent class of the class of the expr
-  // TODO: Check if name is a method of the parent class
-  for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
-    actual->nth(i)->semant_name_scope(classtable);
-  }
-}
 void assign_class::semant_name_scope(ClassTableP classtable) {
   auto identifier_cls = classtable->object_table.lookup(name);
   set_type(Object);
