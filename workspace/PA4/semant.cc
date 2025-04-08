@@ -927,25 +927,24 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
 }
 
 void assign_class::semant_name_scope(ClassTableP classtable) {
+  // 1. Check the identifier
   auto declared_type = classtable->object_table.lookup(name);
-  set_type(Object);
-  if (declared_type == NULL) {
+  if (name == self) {
+    classtable->semant_error(this) << "Cannot assign to 'self'." << std::endl;
+  } else if (declared_type == NULL) {
     classtable->semant_error(this)
         << "Assignment to undeclared variable " << name << "." << std::endl;
-  } else {
-    if (name == self) {
-      classtable->semant_error(this) << "Cannot assign to 'self'." << std::endl;
-    }
-    expr->semant_name_scope(classtable);
-    // Set type of the identifier
-    set_type(expr->get_type());
-    // Check if the expr conforms to identifier type
-    if (!classtable->conforms_to(expr->get_type(), declared_type)) {
-      classtable->semant_error(this)
-          << "Type " << expr->get_type()
-          << " of assigned expression does not conform to declared type "
-          << declared_type << " of identifier " << name << "." << std::endl;
-    }
+    declared_type = Object; // Default to Object if not found
+  }
+  // 2. Check the expression
+  expr->semant_name_scope(classtable);
+  set_type(expr->get_type());
+  // 3. Check the type conformance (expr <= declared_type)
+  if (!classtable->conforms_to(expr->get_type(), declared_type)) {
+    classtable->semant_error(this)
+        << "Type " << expr->get_type()
+        << " of assigned expression does not conform to declared type "
+        << declared_type << " of identifier " << name << "." << std::endl;
   }
 }
 
