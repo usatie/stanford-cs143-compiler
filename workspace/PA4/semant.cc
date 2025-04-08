@@ -761,6 +761,10 @@ void loop_class::semant_name_scope(ClassTableP classtable) {
   set_type(Object);
   pred->semant_name_scope(classtable);
   body->semant_name_scope(classtable);
+  if (pred->get_type() != Bool) {
+    classtable->semant_error(this)
+        << "Loop condition does not have type Bool." << std::endl;
+  }
 }
 
 void cond_class::semant_name_scope(ClassTableP classtable) {
