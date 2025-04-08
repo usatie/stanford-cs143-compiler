@@ -363,7 +363,7 @@ void class__class::install_features(ClassTable *classtable) {
   //   1. Inherited attributes cannot be redefined.
   classtable->method_table.enterscope();
   classtable->object_table.enterscope();
-  classtable->object_table.addid(self, this);
+  classtable->object_table.addid(self, SELF_TYPE);
   for (int i = features->first(); features->more(i); i = features->next(i)) {
     auto feature = features->nth(i);
     auto name = feature->get_name();
@@ -389,9 +389,9 @@ void class__class::install_features(ClassTable *classtable) {
       } else {
         auto type = classtable->lookup_class(attr->get_type_decl());
         if (type == NULL) {
-          classtable->object_table.addid(name, Object_class);
+          classtable->object_table.addid(name, Object);
         } else {
-          classtable->object_table.addid(name, type);
+          classtable->object_table.addid(name, attr->get_type_decl());
         }
       }
     }
@@ -423,14 +423,17 @@ void class__class::exit_scope(ClassTable *classtable) {
 //
 ///////////////////////////////////////////////////////////////////
 bool ClassTable::conforms_to(Symbol A, Symbol B) {
-  auto A_class = lookup_class(A);
-  auto B_class = lookup_class(B);
-  if (A_class == NULL || B_class == NULL) {
-    return false;
-  }
   // A ≤ A for all types A
   if (A == B) {
     return true;
+  }
+  auto A_class = lookup_class(A);
+  if (A_class == NULL) {
+    return false;
+  }
+  // SELF_TYPE_c <= P if C <= P
+  if (A == SELF_TYPE) {
+    return conforms_to(A_class->get_name(), B);
   }
   // if A ≤ C and C ≤ P then A ≤ P
   return conforms_to(A_class->get_parent(), B);
@@ -572,12 +575,16 @@ void formal_class::semant_name_scope(ClassTableP classtable) {
         << "Formal parameter " << name << " is multiply defined." << std::endl;
   } else {
     if (type_cls == NULL) {
-      classtable->object_table.addid(name, Object_class);
+      classtable->object_table.addid(name, Object);
     } else {
-      classtable->object_table.addid(name, type_cls);
+      classtable->object_table.addid(name, type_decl);
     }
   }
-  if (type_cls == NULL) {
+  if (type_decl == SELF_TYPE) {
+    classtable->semant_error(this)
+        << "Formal parameter " << name << " cannot have type SELF_TYPE."
+        << std::endl;
+  } else if (type_cls == NULL) {
     classtable->semant_error(this)
         << "Class " << type_decl << " of formal parameter " << name
         << " is undefined." << std::endl;
@@ -680,9 +687,9 @@ void let_class::semant_name_scope(ClassTableP classtable) {
         << "'self' cannot be bound in a 'let' expression." << std::endl;
   } else {
     if (type_cls == NULL) {
-      classtable->object_table.addid(identifier, Object_class);
+      classtable->object_table.addid(identifier, Object);
     } else {
-      classtable->object_table.addid(identifier, type_cls);
+      classtable->object_table.addid(identifier, type_decl);
     }
   }
   body->semant_name_scope(classtable);
@@ -723,9 +730,9 @@ void branch_class::semant_name_scope(ClassTableP classtable) {
     classtable->semant_error(this) << "'self' bound in 'case'." << std::endl;
   } else {
     if (type == NULL) {
-      classtable->object_table.addid(name, Object_class);
+      classtable->object_table.addid(name, Object);
     } else {
-      classtable->object_table.addid(name, type);
+      classtable->object_table.addid(name, type_decl);
     }
   }
   // Add the branch to the branch table (type)
@@ -738,6 +745,12 @@ void branch_class::semant_name_scope(ClassTableP classtable) {
                                    << " in case statement." << std::endl;
   } else {
     classtable->branch_table.addid(type_decl, type);
+  }
+  // Check illegal SELF_TYPE usage
+  if (type_decl == SELF_TYPE) {
+    classtable->semant_error(this)
+        << "Identifier " << name
+        << " declared with type SELF_TYPE in case branch." << std::endl;
   }
   expr->semant_name_scope(classtable);
   classtable->object_table.exitscope();
@@ -807,23 +820,24 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
   auto left_class = classtable->lookup_class(expr->get_type());
   auto right_class = classtable->lookup_class(type_name);
   auto method = classtable->lookup_method(right_class, name);
-  if (!classtable->conforms_to(expr->get_type(), type_name)) {
+  set_type(Object);
+  if (type_name == SELF_TYPE) {
+    classtable->semant_error(this)
+        << "Static dispatch to SELF_TYPE." << std::endl;
+  } else if (!classtable->conforms_to(expr->get_type(), type_name)) {
     classtable->semant_error(this)
         << "Expression type " << expr->get_type()
         << " does not conform to declared static dispatch type " << type_name
         << "." << std::endl;
-    set_type(Object);
+  } else if (method == NULL) {
+    classtable->semant_error(this)
+        << "Dispatch to undefined method " << name << "." << std::endl;
   } else {
     // Check if name is a method of the parent class
-    if (method == NULL) {
-      classtable->semant_error(this)
-          << "Dispatch to undefined method " << name << "." << std::endl;
-    } else {
-      set_type(method->get_return_type());
-      // TODO: We need to set the type of the method's class
-      if (get_type() == SELF_TYPE) {
-        set_type(expr->get_type());
-      }
+    set_type(method->get_return_type());
+    // TODO: We need to set the type of the method's class
+    if (get_type() == SELF_TYPE) {
+      set_type(expr->get_type());
     }
   }
 
@@ -853,33 +867,20 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
 }
 
 void assign_class::semant_name_scope(ClassTableP classtable) {
-  auto identifier_cls = classtable->object_table.lookup(name);
+  auto declared_type = classtable->object_table.lookup(name);
   set_type(Object);
-  if (identifier_cls == NULL) {
+  if (declared_type == NULL) {
     classtable->semant_error(this)
         << "Assignment to undeclared variable " << name << "." << std::endl;
   } else {
-    // Set type of the identifier
     if (name == self) {
       classtable->semant_error(this) << "Cannot assign to 'self'." << std::endl;
     }
     expr->semant_name_scope(classtable);
+    // Set type of the identifier
     set_type(expr->get_type());
     // Check if the expr conforms to identifier type
-    if (!classtable->conforms_to(expr->get_type(),
-                                 identifier_cls->get_name())) {
-      // TODO: This is to mimic reference coolc implementation
-      // But I don't think it's good way. They may have different
-      // implementation:
-      //   object_table[self] = SELF_TYPE // this may be reference
-      //   implementation object_table[self] = class A   // this is my
-      //   implementation
-      // But, then, how SELF_TYPE is resolved when it's needed to?
-      // Simply classtable->visiting can resolve this?
-      auto declared_type = identifier_cls->get_name();
-      if (name == self) {
-        declared_type = SELF_TYPE;
-      }
+    if (!classtable->conforms_to(expr->get_type(), declared_type)) {
       classtable->semant_error(this)
           << "Type " << expr->get_type()
           << " of assigned expression does not conform to declared type "
@@ -889,13 +890,13 @@ void assign_class::semant_name_scope(ClassTableP classtable) {
 }
 
 void object_class::semant_name_scope(ClassTableP classtable) {
-  auto object_type = classtable->object_table.lookup(name);
-  if (object_type == NULL) {
+  auto declared_type = classtable->object_table.lookup(name);
+  if (declared_type == NULL) {
     classtable->semant_error(this)
         << "Undeclared identifier " << name << "." << std::endl;
     set_type(Object);
   } else {
-    set_type(object_type->get_name());
+    set_type(declared_type);
   }
 }
 
@@ -904,9 +905,11 @@ void ClassTable::semant_name_scope(Classes classes) {
     std::cout << "Checking naming and scoping..." << std::endl;
   }
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
-    visiting = classes->nth(i);
-    class_table.enterscope();
-    visiting->semant_name_scope(this);
+    auto c = classes->nth(i);
+    class_table.enterscope(); // In order to add SELF_TYPE and later remove it
+    class_table.addid(SELF_TYPE, c);
+    visiting = c;
+    c->semant_name_scope(this);
     class_table.exitscope();
   }
 }

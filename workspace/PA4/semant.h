@@ -14,6 +14,7 @@
 class ClassTable;
 typedef ClassTable *ClassTableP;
 typedef SymbolTable<Symbol, Class__class> InternalClassTable;
+typedef SymbolTable<Symbol, Entry> ObjectTable;
 typedef SymbolTable<Symbol, tree_node> SymTab;
 
 // This is a structure that may be used to contain the semantic
@@ -37,7 +38,7 @@ private:
   Class_ visiting;
 
 public:
-  InternalClassTable object_table;
+  ObjectTable object_table;
   SymTab method_table;
   InternalClassTable branch_table;
   ClassTable(Classes);
