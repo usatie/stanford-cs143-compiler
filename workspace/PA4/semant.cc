@@ -594,6 +594,7 @@ void formal_class::semant_name_scope(ClassTableP classtable) {
 void no_expr_class::semant_name_scope(ClassTableP classtable) {}
 
 void isvoid_class::semant_name_scope(ClassTableP classtable) {
+  set_type(Bool);
   e1->semant_name_scope(classtable);
 }
 
