@@ -514,6 +514,7 @@ bool attr_class::is_method() { return false; }
 void class__class::semant_name_scope(ClassTableP classtable) {
   // 1st pass : installing symbols, from ancestor classes to this class
   install_features(classtable);
+
   // 2nd pass : undefined symbol/type check
   // 3rd pass : annotate types
   // 4th pass : check types
@@ -963,6 +964,10 @@ void ClassTable::semant_name_scope(Classes classes) {
   if (semant_debug) {
     std::cout << "Checking naming and scoping..." << std::endl;
   }
+  /* Check the existence of class Main */
+  semant_main();
+
+  /* Naming and Scoping check for each class */
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
     auto c = classes->nth(i);
     class_table.enterscope(); // In order to add SELF_TYPE and later remove it
@@ -986,6 +991,23 @@ void ClassTable::semant_name_scope(Classes classes) {
      errors. Part 2) can be done in a second stage, when you want
      to build mycoolc.
  */
+
+void ClassTable::semant_main() {
+  auto c = lookup_class(Main);
+  if (c == NULL) {
+    semant_error() << "Class Main is not defined." << std::endl;
+    return;
+  }
+  auto m = c->lookup_method(main_meth);
+  if (m == NULL) {
+    semant_error(c) << "No 'main' method in class Main." << std::endl;
+    return;
+  }
+  if (m->get_formals()->len() != 0) {
+    semant_error(c) << "'main' method in class Main should have no arguments."
+                    << std::endl;
+  }
+}
 void program_class::semant() {
   initialize_constants();
 
@@ -993,6 +1015,7 @@ void program_class::semant() {
   ClassTable *classtable = new ClassTable(classes);
 
   /* some semantic analysis code may go here */
+
   /* Check Cyclic Inheritance */
   if (classtable->errors() == 0) {
     classtable->semant_cyclic_inheritance(classes);

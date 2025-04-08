@@ -54,6 +54,7 @@ public:
   bool conforms_to(Symbol A, Symbol B);
   Symbol join_type(Symbol s1, Symbol s2);
   method_class *lookup_method(Class_ cls, Symbol name);
+  void semant_main();
 };
 
 #endif
