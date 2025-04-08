@@ -59,37 +59,6 @@ static void initialize_constants(void) {
   val = idtable.add_string("_val");
 }
 
-bool ClassTable::has_cyclic_inheritance(Class_ orig, Class_ curr) {
-  // Check cycles already detected
-  if (class_table.probe(curr->get_name()) != NULL) {
-    return true;
-  }
-  // If no parent -> no cycle
-  auto parent = class_table.lookup(curr->get_parent_sym());
-  if (parent == NULL) {
-    return false; // parent is a basic class
-  }
-  // Check if the parent class is the original class (i.e. cycle detected)
-  if (orig == parent) {
-    class_table.addid(curr->get_name(), curr);
-    semant_error(curr) << "Class " << curr->get_name() << ", or an ancestor of "
-                       << curr->get_name()
-                       << ", is involved in an inheritance cycle." << std::endl;
-    return true;
-  }
-  // Check if the ancestor classes have cyclic inheritance
-  if (has_cyclic_inheritance(orig, parent)) {
-    class_table.addid(curr->get_name(), curr);
-    semant_error(curr) << "Class " << curr->get_name() << ", or an ancestor of "
-                       << curr->get_name()
-                       << ", is involved in an inheritance cycle." << std::endl;
-    return true;
-  } else {
-    // TODO: Maybe we can store the curr to non_cyclic_classes
-    return false;
-  }
-}
-
 ClassTable::ClassTable(Classes classes)
     : semant_errors(0), error_stream(cerr), visiting(NULL) {
 
@@ -179,6 +148,38 @@ void ClassTable::semant_cyclic_inheritance(Classes classes) {
   }
   class_table.exitscope();
 }
+
+bool ClassTable::has_cyclic_inheritance(Class_ orig, Class_ curr) {
+  // Check cycles already detected
+  if (class_table.probe(curr->get_name()) != NULL) {
+    return true;
+  }
+  // If no parent -> no cycle
+  auto parent = class_table.lookup(curr->get_parent_sym());
+  if (parent == NULL) {
+    return false; // parent is a basic class
+  }
+  // Check if the parent class is the original class (i.e. cycle detected)
+  if (orig == parent) {
+    class_table.addid(curr->get_name(), curr);
+    semant_error(curr) << "Class " << curr->get_name() << ", or an ancestor of "
+                       << curr->get_name()
+                       << ", is involved in an inheritance cycle." << std::endl;
+    return true;
+  }
+  // Check if the ancestor classes have cyclic inheritance
+  if (has_cyclic_inheritance(orig, parent)) {
+    class_table.addid(curr->get_name(), curr);
+    semant_error(curr) << "Class " << curr->get_name() << ", or an ancestor of "
+                       << curr->get_name()
+                       << ", is involved in an inheritance cycle." << std::endl;
+    return true;
+  } else {
+    // TODO: Maybe we can store the curr to non_cyclic_classes
+    return false;
+  }
+}
+
 
 void ClassTable::install_basic_classes() {
 
