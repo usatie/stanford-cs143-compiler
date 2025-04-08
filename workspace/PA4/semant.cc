@@ -720,28 +720,38 @@ void plus_class::semant_name_scope(ClassTableP classtable) {
 }
 
 void let_class::semant_name_scope(ClassTableP classtable) {
-  init->semant_name_scope(classtable);
-  auto type_cls = classtable->lookup_class(type_decl);
-  if (type_cls == NULL) {
+  // 1. Check Undefined type_decl
+  auto identifier_type = type_decl;
+  if (classtable->lookup_class(type_decl) == NULL) {
     classtable->semant_error(this)
         << "Class " << type_decl << " of let-bound identifier " << identifier
         << " is undefined." << std::endl;
+    identifier_type = Object; // Set to Object if undefined
   }
-  // TODO: Check if the type_decl and type(init) matches
+  // 2. Check init expression
+  init->semant_name_scope(classtable);
+  // 3. Check if the type_decl and init.type matches (Only check if init is not
+  // no_expr)
+  bool init_omitted = init->get_type() == NULL; // no_expr does not have a type
+  if (!init_omitted &&
+      !classtable->conforms_to(init->get_type(), identifier_type)) {
+    classtable->semant_error(this)
+        << "Inferred type " << init->get_type() << " of initialization of "
+        << identifier << " does not conform to identifier's declared type "
+        << identifier_type << "." << std::endl;
+  }
+  // 4. Add identifier to object table
   classtable->object_table.enterscope();
   if (identifier == self) {
     classtable->semant_error(this)
         << "'self' cannot be bound in a 'let' expression." << std::endl;
   } else {
-    if (type_cls == NULL) {
-      classtable->object_table.addid(identifier, Object);
-    } else {
-      classtable->object_table.addid(identifier, type_decl);
-    }
+    classtable->object_table.addid(identifier, identifier_type);
   }
+  // 5. Check body expression
   body->semant_name_scope(classtable);
-  set_type(body->get_type());
   classtable->object_table.exitscope();
+  set_type(body->get_type());
 }
 
 void block_class::semant_name_scope(ClassTableP classtable) {
