@@ -601,6 +601,7 @@ void typcase_class::semant_name_scope(ClassTableP classtable) {
 void branch_class::semant_name_scope(ClassTableP classtable) {
   classtable->object_table.enterscope();
   auto type = classtable->lookup_class(type_decl);
+  // Add the branch name to the object table (variable)
   if (name == self) {
     classtable->semant_error(this) << "'self' bound in 'case'." << std::endl;
   } else {
@@ -610,6 +611,7 @@ void branch_class::semant_name_scope(ClassTableP classtable) {
       classtable->object_table.addid(name, type);
     }
   }
+  // Add the branch to the branch table (type)
   if (type == NULL) {
     classtable->semant_error(this)
         << "Class " << type_decl << " of case-bound identifier " << name
