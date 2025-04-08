@@ -99,41 +99,60 @@ ClassTable::ClassTable(Classes classes)
   install_basic_classes();
 
   /* Install user-defined classes */
-  install_user_defined_classes(classes);
-
-  /* Check Illegal Undefined/Basic class inheritance */
-  if (semant_debug) {
-    std::cout << "Checking undefined/basic class inheritance..." << std::endl;
-  }
-  // Use a new scope to manage the already checked classes
   class_table.enterscope();
-  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
-    Symbol name = classes->nth(i)->get_name();
-    if (class_table.probe(name) != NULL) {
-      continue;
-    }
-    class_table.addid(name, classes->nth(i));
-    Symbol parent_sym = classes->nth(i)->get_parent_sym();
-    // The parent is illegal basic class
-    if (parent_sym == Bool || parent_sym == Int || parent_sym == Str) {
-      semant_error(classes->nth(i))
-          << "Class " << name << " cannot inherit class " << parent_sym << "."
-          << std::endl;
-      continue;
-    }
-    // The parent is undefined class
-    auto parent = class_table.lookup(parent_sym);
-    if (parent == NULL) {
-      semant_error(classes->nth(i))
-          << "Class " << name << " inherits from an undefined class "
-          << parent_sym << "." << std::endl;
-      continue;
-    }
-    classes->nth(i)->set_parent(parent);
-  }
-  class_table.exitscope();
+  install_user_defined_classes(classes, 0);
+}
 
-  /* Check Illegal Cyclic inheritance */
+/* Check Illegal Undefined/Basic class inheritance */
+// 1. Install user-defined classes
+// 2. Recursive call to install user-defined class
+// 2-2. Redefinition or previously defined class check
+// 3. Undefined/Basic class check
+void ClassTable::install_user_defined_classes(Classes classes, int i) {
+  if (!classes->more(i)) {
+    return;
+  }
+  auto cls = classes->nth(i);
+  auto name = cls->get_name();
+  bool added_name = false;
+  // Preorder traversal
+  if (class_table.probe(name) != NULL) {
+    semant_error(cls) << "Class " << name << " was previously defined."
+                      << std::endl;
+  } else if (class_table.lookup(name) != NULL) {
+    semant_error(cls) << "Redefinition of basic class " << name << "."
+                      << std::endl;
+  } else {
+    added_name = true;
+    class_table.addid(name, cls);
+  }
+
+  // traverse
+  install_user_defined_classes(classes, i + 1);
+
+  // Postorder traversal
+  if (!added_name) {
+    return; // We don't check the class if it was not added
+  }
+  Symbol parent_sym = cls->get_parent_sym();
+  auto parent = class_table.lookup(parent_sym);
+  // The parent is illegal basic class
+  if (parent_sym == Bool || parent_sym == Int || parent_sym == Str ||
+      parent_sym == SELF_TYPE) {
+    semant_error(cls) << "Class " << name << " cannot inherit class "
+                      << parent_sym << "." << std::endl;
+  }
+  // The parent is undefined class
+  else if (parent == NULL) {
+    semant_error(cls) << "Class " << name
+                      << " inherits from an undefined class " << parent_sym
+                      << "." << std::endl;
+  }
+  cls->set_parent(parent);
+}
+
+/* Check Illegal Cyclic inheritance */
+void ClassTable::semant_cyclic_inheritance(Classes classes) {
   if (semant_debug) {
     std::cout << "Checking cyclic inheritance..." << std::endl;
   }
@@ -145,22 +164,6 @@ ClassTable::ClassTable(Classes classes)
     has_cyclic_inheritance(curr, curr);
   }
   class_table.exitscope();
-}
-
-void ClassTable::install_user_defined_classes(Classes classes) {
-  class_table.enterscope();
-  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
-    Symbol name = classes->nth(i)->get_name();
-    if (class_table.probe(name) != NULL) {
-      semant_error(classes->nth(i))
-          << "Class " << name << " was previously defined." << std::endl;
-    } else if (class_table.lookup(name) != NULL) {
-      semant_error(classes->nth(i))
-          << "Redefinition of basic class " << name << std::endl;
-    } else {
-      class_table.addid(name, classes->nth(i));
-    }
-  }
 }
 
 void ClassTable::install_basic_classes() {
@@ -839,18 +842,18 @@ void program_class::semant() {
   ClassTable *classtable = new ClassTable(classes);
 
   /* some semantic analysis code may go here */
-  if (classtable->errors()) {
-    cerr << "Compilation halted due to static semantic errors." << endl;
-    exit(1);
+  /* Check Cyclic Inheritance */
+  if (classtable->errors() == 0) {
+    classtable->semant_cyclic_inheritance(classes);
   }
   /* Check Naming and Scoping */
-  classtable->semant_name_scope(classes);
-  if (classtable->errors()) {
-    cerr << "Compilation halted due to static semantic errors." << endl;
-    exit(1);
+  if (classtable->errors() == 0) {
+    classtable->semant_name_scope(classes);
   }
-  /* TODO: Type Checking */
-  classtable->check_type();
+  /* Type Checking */
+  if (classtable->errors() == 0) {
+    classtable->check_type();
+  }
 
   if (classtable->errors()) {
     cerr << "Compilation halted due to static semantic errors." << endl;

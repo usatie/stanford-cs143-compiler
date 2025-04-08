@@ -25,7 +25,7 @@ class ClassTable {
 private:
   int semant_errors;
   void install_basic_classes();
-  void install_user_defined_classes(Classes classes);
+  void install_user_defined_classes(Classes classes, int i);
   ostream &error_stream;
   InternalClassTable class_table;
   Class_ visiting;
@@ -41,6 +41,7 @@ public:
   ostream &semant_error(tree_node *t);
   ostream &semant_error(Symbol filename, tree_node *t);
 
+  void semant_cyclic_inheritance(Classes classes);
   void semant_name_scope(Classes classes);
   void check_type();
   bool has_cyclic_inheritance(Class_ orig, Class_ curr);
