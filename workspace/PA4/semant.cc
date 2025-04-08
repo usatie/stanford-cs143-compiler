@@ -587,11 +587,14 @@ void typcase_class::semant_name_scope(ClassTableP classtable) {
   // TODO: Empty case check
   expr->semant_name_scope(classtable);
   classtable->branch_table.enterscope();
-  set_type(Object);
   for (int i = cases->first(); cases->more(i); i = cases->next(i)) {
     auto branch = cases->nth(i);
     branch->semant_name_scope(classtable);
-    set_type(classtable->join_type(branch->get_type(), get_type()));
+    if (type == NULL) {
+      set_type(branch->get_type());
+    } else {
+      set_type(classtable->join_type(branch->get_type(), get_type()));
+    }
   }
   classtable->branch_table.exitscope();
 }
