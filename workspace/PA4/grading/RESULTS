@@ -5,4 +5,3 @@
 	-1 (nomain)	 Missing Main class
 	-1 (overridingmethod4)	 Illegal method override - different param types
 	-1 (signaturechange)	 Method override with different number of params
-	-1 (selftyperedeclared)	 SELF_TYPE redeclared (used a class name)

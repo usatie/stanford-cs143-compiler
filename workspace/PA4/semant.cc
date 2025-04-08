@@ -160,6 +160,7 @@ void ClassTable::install_basic_classes() {
   class_table.addid(Int, Int_class);
   class_table.addid(Bool, Bool_class);
   class_table.addid(Str, Str_class);
+  class_table.addid(SELF_TYPE, (Class_)1); // SELF_TYPE is a dummy class
 }
 
 ClassTable::ClassTable(Classes classes)
