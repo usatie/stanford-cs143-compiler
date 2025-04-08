@@ -49,7 +49,6 @@ public:
 
   void semant_cyclic_inheritance(Classes classes);
   void semant_name_scope(Classes classes);
-  void check_type();
   Class_ lookup_class(Symbol name);
   bool conforms_to(Symbol A, Symbol B);
   Symbol join_type(Symbol s1, Symbol s2);

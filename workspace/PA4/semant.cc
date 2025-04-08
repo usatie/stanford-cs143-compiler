@@ -1,5 +1,3 @@
-
-
 #include "semant.h"
 #include "utilities.h"
 #include <stdarg.h>
@@ -410,9 +408,18 @@ void class__class::exit_scope(ClassTable *classtable) {
     parent->exit_scope(classtable);
   }
 }
+
 ////////////////////////////////////////////////////////////////////
 //
-// check_name_and_scope and check_type
+// Type Annotation and Type Checking
+//
+// bool ClassTable::conforms_to(Symbol A, Symbol B)
+//   Checks if class A conforms to class B. It is used to check if
+//   a class is a subclass of another class.
+//
+// Symbol ClassTable::join_type(Symbol s1, Symbol s2)
+//   Returns the common ancestor of two classes. It is used to
+//   determine the static type of joining two classes.
 //
 ///////////////////////////////////////////////////////////////////
 bool ClassTable::conforms_to(Symbol A, Symbol B) {
@@ -429,9 +436,77 @@ bool ClassTable::conforms_to(Symbol A, Symbol B) {
   return conforms_to(A_class->get_parent(), B);
 }
 
+Symbol ClassTable::join_type(Symbol s1, Symbol s2) {
+  // case 1 : s1 is a subclass of s2
+  if (conforms_to(s1, s2)) {
+    return s2;
+  }
+  // case 2 : s2 is a subclass of s1
+  if (conforms_to(s2, s1)) {
+    return s1;
+  }
+  // case 3 : s1 and s2 has a common ancestor
+  auto s1_class = lookup_class(s1);
+  auto s2_class = lookup_class(s2);
+  return join_type(s1_class->get_parent(), s2_class->get_parent());
+}
+
+////////////////////////////////////////////////////////////////////
+//
+// lookup_method is a method that looks up a method in the class
+// hierarchy.
+//
+// method_class *ClassTable::lookup_method(Class_ cls, Symbol name)
+//   Returns the method with the given name in the class hierarchy.
+//
+// method_class *class__class::lookup_method(Symbol name)
+//   Looks up a method in the class. It is used to find the
+//   method in the class hierarchy.
+//
+///////////////////////////////////////////////////////////////////
+method_class *ClassTable::lookup_method(Class_ cls, Symbol name) {
+  if (cls == NULL) {
+    return NULL;
+  }
+  auto method = cls->lookup_method(name);
+  if (method != NULL) {
+    return method;
+  }
+  auto parent = lookup_class(cls->get_parent());
+  return lookup_method(parent, name);
+}
+
+method_class *class__class::lookup_method(Symbol name) {
+  for (int i = features->first(); features->more(i); i = features->next(i)) {
+    auto feature = features->nth(i);
+    if (feature->is_method() && feature->get_name() == name) {
+      return dynamic_cast<method_class *>(feature);
+    }
+  }
+  return NULL;
+}
+
+////////////////////////////////////////////////////////////////////
+//
+// is_method is a method that checks if the feature is a method or an
+// attribute. It is used to distinguish between methods and
+// attributes in the class hierarchy.
+//
+// bool method_class::is_method()
+// bool attr_class::is_method()
+//
+///////////////////////////////////////////////////////////////////
 bool method_class::is_method() { return true; }
 bool attr_class::is_method() { return false; }
 
+////////////////////////////////////////////////////////////////////
+//
+// semant_name_scope is a method that performs semantic analysis on the
+// class hierarchy. It is implemented for each AST node type.
+//
+// void ::semant_name_scope(ClassTableP classtable)
+//
+///////////////////////////////////////////////////////////////////
 void class__class::semant_name_scope(ClassTableP classtable) {
   // 1st pass : installing symbols, from ancestor classes to this class
   install_features(classtable);
@@ -510,9 +585,11 @@ void formal_class::semant_name_scope(ClassTableP classtable) {
 }
 
 void no_expr_class::semant_name_scope(ClassTableP classtable) {}
+
 void isvoid_class::semant_name_scope(ClassTableP classtable) {
   e1->semant_name_scope(classtable);
 }
+
 void new__class::semant_name_scope(ClassTableP classtable) {
   auto type = classtable->lookup_class(type_name);
   if (type == NULL) {
@@ -523,58 +600,71 @@ void new__class::semant_name_scope(ClassTableP classtable) {
     set_type(type_name);
   }
 }
+
 void string_const_class::semant_name_scope(ClassTableP classtable) {
   set_type(Str);
 }
+
 void bool_const_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
 }
+
 void int_const_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
 }
+
 void comp_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
   e1->semant_name_scope(classtable);
 }
+
 void leq_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
 }
+
 void eq_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
 }
+
 void lt_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
 }
+
 void neg_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
   e1->semant_name_scope(classtable);
 }
+
 void divide_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
 }
+
 void mul_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
 }
+
 void sub_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
 }
+
 void plus_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
 }
+
 void let_class::semant_name_scope(ClassTableP classtable) {
   init->semant_name_scope(classtable);
   auto type_cls = classtable->lookup_class(type_decl);
@@ -599,6 +689,7 @@ void let_class::semant_name_scope(ClassTableP classtable) {
   set_type(body->get_type());
   classtable->object_table.exitscope();
 }
+
 void block_class::semant_name_scope(ClassTableP classtable) {
   // TODO: Empty block check
   for (int i = body->first(); body->more(i); i = body->next(i)) {
@@ -607,20 +698,7 @@ void block_class::semant_name_scope(ClassTableP classtable) {
     set_type(body->nth(i)->get_type());
   }
 }
-Symbol ClassTable::join_type(Symbol s1, Symbol s2) {
-  // case 1 : s1 is a subclass of s2
-  if (conforms_to(s1, s2)) {
-    return s2;
-  }
-  // case 2 : s2 is a subclass of s1
-  if (conforms_to(s2, s1)) {
-    return s1;
-  }
-  // case 3 : s1 and s2 has a common ancestor
-  auto s1_class = lookup_class(s1);
-  auto s2_class = lookup_class(s2);
-  return join_type(s1_class->get_parent(), s2_class->get_parent());
-}
+
 void typcase_class::semant_name_scope(ClassTableP classtable) {
   // TODO: Empty case check
   expr->semant_name_scope(classtable);
@@ -664,11 +742,13 @@ void branch_class::semant_name_scope(ClassTableP classtable) {
   expr->semant_name_scope(classtable);
   classtable->object_table.exitscope();
 }
+
 void loop_class::semant_name_scope(ClassTableP classtable) {
   set_type(Object);
   pred->semant_name_scope(classtable);
   body->semant_name_scope(classtable);
 }
+
 void cond_class::semant_name_scope(ClassTableP classtable) {
   pred->semant_name_scope(classtable);
   // TODO: Check if pred is of type Bool
@@ -676,6 +756,7 @@ void cond_class::semant_name_scope(ClassTableP classtable) {
   else_exp->semant_name_scope(classtable);
   // TODO: Set type (join of then and else)
 }
+
 void dispatch_class::semant_name_scope(ClassTableP classtable) {
   expr->semant_name_scope(classtable);
   auto expr_type = expr->get_type();
@@ -771,28 +852,6 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
   }
 }
 
-method_class *ClassTable::lookup_method(Class_ cls, Symbol name) {
-  if (cls == NULL) {
-    return NULL;
-  }
-  auto method = cls->lookup_method(name);
-  if (method != NULL) {
-    return method;
-  }
-  auto parent = lookup_class(cls->get_parent());
-  return lookup_method(parent, name);
-}
-
-method_class *class__class::lookup_method(Symbol name) {
-  for (int i = features->first(); features->more(i); i = features->next(i)) {
-    auto feature = features->nth(i);
-    if (feature->is_method() && feature->get_name() == name) {
-      return dynamic_cast<method_class *>(feature);
-    }
-  }
-  return NULL;
-}
-
 void assign_class::semant_name_scope(ClassTableP classtable) {
   auto identifier_cls = classtable->object_table.lookup(name);
   set_type(Object);
@@ -852,12 +911,6 @@ void ClassTable::semant_name_scope(Classes classes) {
   }
 }
 
-void ClassTable::check_type() {
-  if (semant_debug) {
-    std::cout << "Checking type system..." << std::endl;
-  }
-}
-
 /*   This is the entry point to the semantic checker.
 
      Your checker should do the following two things:
@@ -885,10 +938,6 @@ void program_class::semant() {
   /* Check Naming and Scoping */
   if (classtable->errors() == 0) {
     classtable->semant_name_scope(classes);
-  }
-  /* Type Checking */
-  if (classtable->errors() == 0) {
-    classtable->check_type();
   }
 
   if (classtable->errors()) {
