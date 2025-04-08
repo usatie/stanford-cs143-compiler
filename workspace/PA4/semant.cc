@@ -155,12 +155,6 @@ void ClassTable::install_basic_classes() {
                      Str, no_expr()))),
       filename);
 
-  /* Set parent classes */
-  IO_class->set_parent(Object_class);
-  Int_class->set_parent(Object_class);
-  Bool_class->set_parent(Object_class);
-  Str_class->set_parent(Object_class);
-
   /* Add basic classes to the class table */
   class_table.enterscope();
   class_table.addid(Object, Object_class);
@@ -217,7 +211,7 @@ void ClassTable::validate_inheritance(Class_ c) {
   if (class_table.lookup(c->get_name()) != c) {
     return; // This class is not installed (No need to check)
   }
-  Symbol parent_sym = c->get_parent_sym();
+  Symbol parent_sym = c->get_parent();
   auto parent = class_table.lookup(parent_sym);
   // The parent is illegal basic class
   if (parent_sym == Bool || parent_sym == Int || parent_sym == Str ||
@@ -294,7 +288,7 @@ bool ClassTable::has_cyclic_inheritance(Class_ orig, Class_ curr) {
     return true;
   }
   // If no parent -> no cycle
-  auto parent = class_table.lookup(curr->get_parent_sym());
+  auto parent = class_table.lookup(curr->get_parent());
   if (parent == NULL) {
     return false; // parent is a basic class
   }
@@ -359,7 +353,7 @@ ostream &ClassTable::semant_error() {
 ///////////////////////////////////////////////////////////////////
 void class__class::install_features(ClassTable *classtable) {
   // Install symbols from anscestor classes
-  auto parent = classtable->lookup_class(get_parent_sym());
+  auto parent = classtable->lookup_class(get_parent());
   if (parent != NULL) {
     parent->install_features(classtable);
   }
@@ -411,7 +405,7 @@ void class__class::exit_scope(ClassTable *classtable) {
   classtable->method_table.exitscope();
   classtable->object_table.exitscope();
   // Exit the scope of the ancestor classes
-  auto parent = classtable->lookup_class(get_parent_sym());
+  auto parent = classtable->lookup_class(get_parent());
   if (parent != NULL) {
     parent->exit_scope(classtable);
   }
@@ -432,7 +426,7 @@ bool ClassTable::conforms_to(Symbol A, Symbol B) {
     return true;
   }
   // if A ≤ C and C ≤ P then A ≤ P
-  return conforms_to(A_class->get_parent_sym(), B);
+  return conforms_to(A_class->get_parent(), B);
 }
 
 bool method_class::is_method() { return true; }
@@ -625,7 +619,7 @@ Symbol ClassTable::join_type(Symbol s1, Symbol s2) {
   // case 3 : s1 and s2 has a common ancestor
   auto s1_class = lookup_class(s1);
   auto s2_class = lookup_class(s2);
-  return join_type(s1_class->get_parent_sym(), s2_class->get_parent_sym());
+  return join_type(s1_class->get_parent(), s2_class->get_parent());
 }
 void typcase_class::semant_name_scope(ClassTableP classtable) {
   // TODO: Empty case check
@@ -785,7 +779,7 @@ method_class *ClassTable::lookup_method(Class_ cls, Symbol name) {
   if (method != NULL) {
     return method;
   }
-  auto parent = lookup_class(cls->get_parent_sym());
+  auto parent = lookup_class(cls->get_parent());
   return lookup_method(parent, name);
 }
 
