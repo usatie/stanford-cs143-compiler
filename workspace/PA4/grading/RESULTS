@@ -1,6 +1,3 @@
-	-1 (badarith)	 Addition with non-int argument
-	-1 (badequalitytest)	 Int compared to String
-	-1 (badequalitytest2)	 Int compared to Bool
 	-1 (letbadinit)	 Let initization with nonconforming type
 	-1 (nomain)	 Missing Main class
 	-1 (overridingmethod4)	 Illegal method override - different param types

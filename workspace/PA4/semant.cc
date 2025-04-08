@@ -625,53 +625,97 @@ void int_const_class::semant_name_scope(ClassTableP classtable) {
 void comp_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
   e1->semant_name_scope(classtable);
+  if (e1->get_type() != Bool) {
+    classtable->semant_error(this)
+        << "Argument of 'not' has type " << e1->get_type()
+        << " instead of Bool." << std::endl;
+  }
 }
 
 void leq_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
+  if (e1->get_type() != Int || e2->get_type() != Int) {
+    classtable->semant_error(this) << "non-Int arguments: " << e1->get_type()
+                                   << " <= " << e2->get_type() << std::endl;
+  }
+}
+
+static bool is_basic_type(Symbol type) {
+  return type == Int || type == Bool || type == Str;
 }
 
 void eq_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
+  if (is_basic_type(e1->get_type()) || is_basic_type(e2->get_type())) {
+    if (e1->get_type() != e2->get_type()) {
+      classtable->semant_error(this)
+          << "Illegal comparison with a basic type." << std::endl;
+    }
+  }
 }
 
 void lt_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
+  if (e1->get_type() != Int || e2->get_type() != Int) {
+    classtable->semant_error(this) << "non-Int arguments: " << e1->get_type()
+                                   << " < " << e2->get_type() << std::endl;
+  }
 }
 
 void neg_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
   e1->semant_name_scope(classtable);
+  if (e1->get_type() != Int) {
+    classtable->semant_error(this)
+        << "Argument of '~' has type " << e1->get_type() << " instead of Int."
+        << std::endl;
+  }
 }
 
 void divide_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
+  if (e1->get_type() != Int || e2->get_type() != Int) {
+    classtable->semant_error(this) << "non-Int arguments: " << e1->get_type()
+                                   << " / " << e2->get_type() << std::endl;
+  }
 }
 
 void mul_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
+  if (e1->get_type() != Int || e2->get_type() != Int) {
+    classtable->semant_error(this) << "non-Int arguments: " << e1->get_type()
+                                   << " * " << e2->get_type() << std::endl;
+  }
 }
 
 void sub_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
+  if (e1->get_type() != Int || e2->get_type() != Int) {
+    classtable->semant_error(this) << "non-Int arguments: " << e1->get_type()
+                                   << " - " << e2->get_type() << std::endl;
+  }
 }
 
 void plus_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
+  if (e1->get_type() != Int || e2->get_type() != Int) {
+    classtable->semant_error(this) << "non-Int arguments: " << e1->get_type()
+                                   << " + " << e2->get_type() << std::endl;
+  }
 }
 
 void let_class::semant_name_scope(ClassTableP classtable) {
