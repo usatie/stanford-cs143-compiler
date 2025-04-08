@@ -437,6 +437,15 @@ void attr_class::semant_name_scope(ClassTableP classtable) {
     classtable->semant_error(this) << "Class " << type_decl << " of attribute "
                                    << name << " is undefined." << std::endl;
   }
+  // Check if type of init conforms to the type_decl
+  // init can be no_expr(), we don't check it then
+  if (init->get_type() &&
+      !classtable->conforms_to(init->get_type(), type_decl)) {
+    classtable->semant_error(this) << "Inferred type " << init->get_type()
+                                   << " of initialization of attribute " << name
+                                   << " does not conform to declared type "
+                                   << type_decl << "." << std::endl;
+  }
 }
 
 void formal_class::semant_name_scope(ClassTableP classtable) {
