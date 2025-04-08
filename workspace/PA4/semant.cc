@@ -543,8 +543,6 @@ void let_class::semant_name_scope(ClassTableP classtable) {
     classtable->semant_error(this)
         << "Class " << type_decl << " of let-bound identifier " << identifier
         << " is undefined." << std::endl;
-  } else {
-    set_type(type_decl);
   }
   // TODO: Check if the type_decl and type(init) matches
   classtable->object_table.enterscope();
@@ -559,6 +557,7 @@ void let_class::semant_name_scope(ClassTableP classtable) {
     }
   }
   body->semant_name_scope(classtable);
+  set_type(body->get_type());
   classtable->object_table.exitscope();
 }
 void block_class::semant_name_scope(ClassTableP classtable) {
