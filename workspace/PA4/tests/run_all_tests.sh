@@ -23,14 +23,23 @@ total=0
 # Test files in tests directory
 for test_file in "$SCRIPT_DIR"/*.cl; do
   if [ -f "$test_file" ]; then
-    echo -e "\n${YELLOW}Testing: $test_file${NC}"
-    "$SCRIPT_DIR/test.sh" "$test_file"
+    # Get file basename for cleaner output
+    filename=$(basename "$test_file")
+    
+    # Run the test script and capture output
+    output=$("$SCRIPT_DIR/run_single_test.sh" "$test_file" 2>&1)
     
     # Check result
     result=$?
     if [ $result -eq 0 ]; then
+      echo -e "${GREEN}✓ PASS${NC}: $filename"
       passed=$((passed + 1))
     else
+      echo -e "${RED}✗ FAIL${NC}: $filename"
+      if [ -n "$output" ]; then
+        echo "$output"
+        echo "--------------------------"
+      fi
       failed=$((failed + 1))
     fi
     total=$((total + 1))
