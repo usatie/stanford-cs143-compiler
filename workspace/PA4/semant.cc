@@ -59,128 +59,6 @@ static void initialize_constants(void) {
   val = idtable.add_string("_val");
 }
 
-ClassTable::ClassTable(Classes classes)
-    : semant_errors(0), error_stream(cerr), visiting(NULL) {
-
-  /* Fill this in */
-
-  /* install basic classes */
-  install_basic_classes();
-
-  /* Install user-defined classes */
-  class_table.enterscope();
-  // Preorder : Install classes
-  // Postorder : Inheritance check
-  traverse_classes(classes, 0, &ClassTable::install_class,
-                   &ClassTable::validate_inheritance);
-}
-
-/* Check Illegal Undefined/Basic class inheritance */
-// 1. Install user-defined classes
-// 2. Recursive call to install user-defined class
-// 2-2. Redefinition or previously defined class check
-// 3. Undefined/Basic class check
-void ClassTable::install_class(Class_ c) {
-  auto name = c->get_name();
-  if (class_table.probe(name) != NULL) {
-    semant_error(c) << "Class " << name << " was previously defined."
-                    << std::endl;
-  } else if (class_table.lookup(name) != NULL) {
-    semant_error(c) << "Redefinition of basic class " << name << "."
-                    << std::endl;
-  } else {
-    class_table.addid(name, c);
-  }
-}
-
-void ClassTable::validate_inheritance(Class_ c) {
-  if (class_table.lookup(c->get_name()) != c) {
-    return; // This class is not installed (No need to check)
-  }
-  Symbol parent_sym = c->get_parent_sym();
-  auto parent = class_table.lookup(parent_sym);
-  // The parent is illegal basic class
-  if (parent_sym == Bool || parent_sym == Int || parent_sym == Str ||
-      parent_sym == SELF_TYPE) {
-    semant_error(c) << "Class " << c->get_name() << " cannot inherit class "
-                    << parent_sym << "." << std::endl;
-  }
-  // The parent is undefined class
-  else if (parent == NULL) {
-    semant_error(c) << "Class " << c->get_name()
-                    << " inherits from an undefined class " << parent_sym << "."
-                    << std::endl;
-  }
-  c->set_parent(parent);
-}
-
-void ClassTable::traverse_classes(Classes classes, int i, traverse_func pre,
-                                  traverse_func post) {
-  if (!classes->more(i)) {
-    return;
-  }
-  auto c = classes->nth(i);
-  // Preorder traversal
-  if (pre) {
-    (this->*pre)(c);
-  }
-
-  // traverse
-  traverse_classes(classes, classes->next(i), pre, post);
-
-  // Postorder traversal
-  if (post) {
-    (this->*post)(c);
-  }
-}
-
-/* Check Illegal Cyclic inheritance */
-void ClassTable::semant_cyclic_inheritance(Classes classes) {
-  if (semant_debug) {
-    std::cout << "Checking cyclic inheritance..." << std::endl;
-  }
-  // Use a new scope to manage the already checked classes
-  class_table.enterscope();
-  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
-    Symbol name = classes->nth(i)->get_name();
-    auto curr = classes->nth(i);
-    has_cyclic_inheritance(curr, curr);
-  }
-  class_table.exitscope();
-}
-
-bool ClassTable::has_cyclic_inheritance(Class_ orig, Class_ curr) {
-  // Check cycles already detected
-  if (class_table.probe(curr->get_name()) != NULL) {
-    return true;
-  }
-  // If no parent -> no cycle
-  auto parent = class_table.lookup(curr->get_parent_sym());
-  if (parent == NULL) {
-    return false; // parent is a basic class
-  }
-  // Check if the parent class is the original class (i.e. cycle detected)
-  if (orig == parent) {
-    class_table.addid(curr->get_name(), curr);
-    semant_error(curr) << "Class " << curr->get_name() << ", or an ancestor of "
-                       << curr->get_name()
-                       << ", is involved in an inheritance cycle." << std::endl;
-    return true;
-  }
-  // Check if the ancestor classes have cyclic inheritance
-  if (has_cyclic_inheritance(orig, parent)) {
-    class_table.addid(curr->get_name(), curr);
-    semant_error(curr) << "Class " << curr->get_name() << ", or an ancestor of "
-                       << curr->get_name()
-                       << ", is involved in an inheritance cycle." << std::endl;
-    return true;
-  } else {
-    // TODO: Maybe we can store the curr to non_cyclic_classes
-    return false;
-  }
-}
-
-
 void ClassTable::install_basic_classes() {
 
   // The tree package uses these globals to annotate the classes built below.
@@ -290,6 +168,155 @@ void ClassTable::install_basic_classes() {
   class_table.addid(Int, Int_class);
   class_table.addid(Bool, Bool_class);
   class_table.addid(Str, Str_class);
+}
+
+ClassTable::ClassTable(Classes classes)
+    : semant_errors(0), error_stream(cerr), visiting(NULL) {
+
+  /* Fill this in */
+
+  /* install basic classes */
+  install_basic_classes();
+
+  /* Install user-defined classes */
+  class_table.enterscope();
+  // Preorder : Install classes
+  // Postorder : Inheritance check
+  traverse_classes(classes, 0, &ClassTable::install_class,
+                   &ClassTable::validate_inheritance);
+}
+
+/* Check Illegal Undefined/Basic class inheritance */
+// 1. Install user-defined classes
+// 2. Recursive call to install user-defined class
+// 2-2. Redefinition or previously defined class check
+// 3. Undefined/Basic class check
+void ClassTable::install_class(Class_ c) {
+  auto name = c->get_name();
+  if (class_table.probe(name) != NULL) {
+    semant_error(c) << "Class " << name << " was previously defined."
+                    << std::endl;
+  } else if (class_table.lookup(name) != NULL) {
+    semant_error(c) << "Redefinition of basic class " << name << "."
+                    << std::endl;
+  } else {
+    class_table.addid(name, c);
+  }
+}
+
+////////////////////////////////////////////////////////////////////
+//
+// validate_inheritance is a method that checks for illegal
+// inheritance of classes. It checks if the class is inheriting from
+// a basic class or an undefined class.
+//
+//    void ClassTable::validate_inheritance(Class_ c)
+//
+///////////////////////////////////////////////////////////////////
+void ClassTable::validate_inheritance(Class_ c) {
+  if (class_table.lookup(c->get_name()) != c) {
+    return; // This class is not installed (No need to check)
+  }
+  Symbol parent_sym = c->get_parent_sym();
+  auto parent = class_table.lookup(parent_sym);
+  // The parent is illegal basic class
+  if (parent_sym == Bool || parent_sym == Int || parent_sym == Str ||
+      parent_sym == SELF_TYPE) {
+    semant_error(c) << "Class " << c->get_name() << " cannot inherit class "
+                    << parent_sym << "." << std::endl;
+  }
+  // The parent is undefined class
+  else if (parent == NULL) {
+    semant_error(c) << "Class " << c->get_name()
+                    << " inherits from an undefined class " << parent_sym << "."
+                    << std::endl;
+  }
+}
+
+////////////////////////////////////////////////////////////////////
+//
+// traverse_classes is a method that traverses the classes in the
+// order they are defined. It can be used to perform a pre-order and
+// post-order traversal of the class definition order.
+//
+//    void ClassTable::traverse_classes(Classes classes, int i, traverse_func
+//    pre,
+//                                  traverse_func post)
+//
+///////////////////////////////////////////////////////////////////
+void ClassTable::traverse_classes(Classes classes, int i, traverse_func pre,
+                                  traverse_func post) {
+  if (!classes->more(i)) {
+    return;
+  }
+  auto c = classes->nth(i);
+  // Preorder traversal
+  if (pre) {
+    (this->*pre)(c);
+  }
+
+  // traverse
+  traverse_classes(classes, classes->next(i), pre, post);
+
+  // Postorder traversal
+  if (post) {
+    (this->*post)(c);
+  }
+}
+
+////////////////////////////////////////////////////////////////////
+//
+// semant_cyclic_inheritance is a method that checks for cyclic
+// inheritance in the class hierarchy. It uses a depth-first
+// search approach to traverse the class inheritance hierarchy and
+// detect cycles.
+//
+//    void ClassTable::semant_cyclic_inheritance(Classes classes)
+//
+///////////////////////////////////////////////////////////////////
+void ClassTable::semant_cyclic_inheritance(Classes classes) {
+  if (semant_debug) {
+    std::cout << "Checking cyclic inheritance..." << std::endl;
+  }
+  // Use a new scope to manage the already checked classes
+  class_table.enterscope();
+  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
+    Symbol name = classes->nth(i)->get_name();
+    auto curr = classes->nth(i);
+    has_cyclic_inheritance(curr, curr);
+  }
+  class_table.exitscope();
+}
+
+bool ClassTable::has_cyclic_inheritance(Class_ orig, Class_ curr) {
+  // Check cycles already detected
+  if (class_table.probe(curr->get_name()) != NULL) {
+    return true;
+  }
+  // If no parent -> no cycle
+  auto parent = class_table.lookup(curr->get_parent_sym());
+  if (parent == NULL) {
+    return false; // parent is a basic class
+  }
+  // Check if the parent class is the original class (i.e. cycle detected)
+  if (orig == parent) {
+    class_table.addid(curr->get_name(), curr);
+    semant_error(curr) << "Class " << curr->get_name() << ", or an ancestor of "
+                       << curr->get_name()
+                       << ", is involved in an inheritance cycle." << std::endl;
+    return true;
+  }
+  // Check if the ancestor classes have cyclic inheritance
+  if (has_cyclic_inheritance(orig, parent)) {
+    class_table.addid(curr->get_name(), curr);
+    semant_error(curr) << "Class " << curr->get_name() << ", or an ancestor of "
+                       << curr->get_name()
+                       << ", is involved in an inheritance cycle." << std::endl;
+    return true;
+  } else {
+    // TODO: Maybe we can store the curr to non_cyclic_classes
+    return false;
+  }
 }
 
 ////////////////////////////////////////////////////////////////////

@@ -62,8 +62,6 @@ typedef ClassTable *ClassTableP;
   virtual Symbol get_parent_sym() = 0;                                         \
   virtual Symbol get_filename() = 0;                                           \
   virtual void dump_with_types(ostream &, int) = 0;                            \
-  virtual void set_parent(Class_ parentnd) = 0;                                \
-  virtual Class_ get_parent() = 0;                                             \
   virtual void semant_name_scope(ClassTableP classtable) = 0;                  \
   virtual void install_features(ClassTableP classtable) = 0;                   \
   virtual void exit_scope(ClassTableP classtable) = 0;                         \
@@ -73,16 +71,11 @@ typedef ClassTable *ClassTableP;
   Symbol get_name() { return name; }                                           \
   Symbol get_parent_sym() { return parent; }                                   \
   Symbol get_filename() { return filename; }                                   \
-  void set_parent(Class_ parentnd) { parentnd = parentnd; }                    \
-  Class_ get_parent() { return parentnd; }                                     \
   void dump_with_types(ostream &, int);                                        \
   void semant_name_scope(ClassTableP classtable);                              \
   void install_features(ClassTableP classtable);                               \
   void exit_scope(ClassTableP classtable);                                     \
-  method_class *lookup_method(Symbol name);                                    \
-                                                                               \
-protected:                                                                     \
-  Class_ parentnd = NULL;
+  method_class *lookup_method(Symbol name);
 
 #define Feature_EXTRAS                                                         \
   virtual Symbol get_name() = 0;                                               \

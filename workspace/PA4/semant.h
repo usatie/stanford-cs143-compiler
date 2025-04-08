@@ -31,6 +31,7 @@ private:
                         traverse_func post);
   void install_class(Class_ c);
   void validate_inheritance(Class_ c);
+  bool has_cyclic_inheritance(Class_ orig, Class_ curr);
   ostream &error_stream;
   InternalClassTable class_table;
   Class_ visiting;
@@ -49,7 +50,6 @@ public:
   void semant_cyclic_inheritance(Classes classes);
   void semant_name_scope(Classes classes);
   void check_type();
-  bool has_cyclic_inheritance(Class_ orig, Class_ curr);
   Class_ lookup_class(Symbol name);
   bool conforms_to(Symbol A, Symbol B);
   Symbol join_type(Symbol s1, Symbol s2);
