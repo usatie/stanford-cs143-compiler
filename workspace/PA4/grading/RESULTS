@@ -12,7 +12,6 @@
 	-1 (io)	 IO methods
 	-1 (isvoid)	 isvoid expressions
 	-1 (letselftype)	 Let with SELF_TYPE variables (legal)
-	-1 (letshadows)	 Let with a variable shadowing one in an outer scope
 	-1 (letbadinit)	 Let initization with nonconforming type
 	-1 (list)	 List program
 	-1 (lubtest)	 LUB test using if statements

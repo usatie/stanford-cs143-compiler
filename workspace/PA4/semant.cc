@@ -100,7 +100,10 @@ ClassTable::ClassTable(Classes classes)
 
   /* Install user-defined classes */
   class_table.enterscope();
-  install_user_defined_classes(classes, 0);
+  // Preorder : Install classes
+  // Postorder : Inheritance check
+  traverse_classes(classes, 0, &ClassTable::install_class,
+                   &ClassTable::validate_inheritance);
 }
 
 /* Check Illegal Undefined/Basic class inheritance */
@@ -108,47 +111,58 @@ ClassTable::ClassTable(Classes classes)
 // 2. Recursive call to install user-defined class
 // 2-2. Redefinition or previously defined class check
 // 3. Undefined/Basic class check
-void ClassTable::install_user_defined_classes(Classes classes, int i) {
-  if (!classes->more(i)) {
-    return;
-  }
-  auto cls = classes->nth(i);
-  auto name = cls->get_name();
-  bool added_name = false;
-  // Preorder traversal
+void ClassTable::install_class(Class_ c) {
+  auto name = c->get_name();
   if (class_table.probe(name) != NULL) {
-    semant_error(cls) << "Class " << name << " was previously defined."
-                      << std::endl;
+    semant_error(c) << "Class " << name << " was previously defined."
+                    << std::endl;
   } else if (class_table.lookup(name) != NULL) {
-    semant_error(cls) << "Redefinition of basic class " << name << "."
-                      << std::endl;
+    semant_error(c) << "Redefinition of basic class " << name << "."
+                    << std::endl;
   } else {
-    added_name = true;
-    class_table.addid(name, cls);
+    class_table.addid(name, c);
   }
+}
 
-  // traverse
-  install_user_defined_classes(classes, i + 1);
-
-  // Postorder traversal
-  if (!added_name) {
-    return; // We don't check the class if it was not added
+void ClassTable::validate_inheritance(Class_ c) {
+  if (class_table.lookup(c->get_name()) != c) {
+    return; // This class is not installed (No need to check)
   }
-  Symbol parent_sym = cls->get_parent_sym();
+  Symbol parent_sym = c->get_parent_sym();
   auto parent = class_table.lookup(parent_sym);
   // The parent is illegal basic class
   if (parent_sym == Bool || parent_sym == Int || parent_sym == Str ||
       parent_sym == SELF_TYPE) {
-    semant_error(cls) << "Class " << name << " cannot inherit class "
-                      << parent_sym << "." << std::endl;
+    semant_error(c) << "Class " << c->get_name() << " cannot inherit class "
+                    << parent_sym << "." << std::endl;
   }
   // The parent is undefined class
   else if (parent == NULL) {
-    semant_error(cls) << "Class " << name
-                      << " inherits from an undefined class " << parent_sym
-                      << "." << std::endl;
+    semant_error(c) << "Class " << c->get_name()
+                    << " inherits from an undefined class " << parent_sym << "."
+                    << std::endl;
   }
-  cls->set_parent(parent);
+  c->set_parent(parent);
+}
+
+void ClassTable::traverse_classes(Classes classes, int i, traverse_func pre,
+                                  traverse_func post) {
+  if (!classes->more(i)) {
+    return;
+  }
+  auto c = classes->nth(i);
+  // Preorder traversal
+  if (pre) {
+    (this->*pre)(c);
+  }
+
+  // traverse
+  traverse_classes(classes, classes->next(i), pre, post);
+
+  // Postorder traversal
+  if (post) {
+    (this->*post)(c);
+  }
 }
 
 /* Check Illegal Cyclic inheritance */

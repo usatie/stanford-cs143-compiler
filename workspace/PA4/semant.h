@@ -25,7 +25,12 @@ class ClassTable {
 private:
   int semant_errors;
   void install_basic_classes();
-  void install_user_defined_classes(Classes classes, int i);
+  // traverse with function pointer for pre and post
+  typedef void (ClassTable::*traverse_func)(Class_ c);
+  void traverse_classes(Classes classes, int i, traverse_func pre,
+                        traverse_func post);
+  void install_class(Class_ c);
+  void validate_inheritance(Class_ c);
   ostream &error_stream;
   InternalClassTable class_table;
   Class_ visiting;
