@@ -763,11 +763,20 @@ void loop_class::semant_name_scope(ClassTableP classtable) {
 }
 
 void cond_class::semant_name_scope(ClassTableP classtable) {
+  if (semant_debug) {
+    classtable->semant_error(this)
+        << "cond_class::semant_name_scope " << std::endl;
+  }
   pred->semant_name_scope(classtable);
+  if (pred->get_type() != Bool) {
+    classtable->semant_error(this)
+        << "Predicate of 'if' does not have type Bool." << std::endl;
+  }
   // TODO: Check if pred is of type Bool
   then_exp->semant_name_scope(classtable);
   else_exp->semant_name_scope(classtable);
-  // TODO: Set type (join of then and else)
+  // Set type (join of then and else)
+  set_type(classtable->join_type(then_exp->get_type(), else_exp->get_type()));
 }
 
 void dispatch_class::semant_name_scope(ClassTableP classtable) {
