@@ -350,6 +350,65 @@ ostream &ClassTable::semant_error() {
 // Install features
 //
 ///////////////////////////////////////////////////////////////////
+static void install_method(ClassTableP classtable, method_class *method,
+                           method_class *overrided_method) {
+  auto name = method->get_name();
+  if (classtable->method_table.probe(name) != NULL) {
+    classtable->semant_error(method)
+        << "Method " << name << " is multiply defined." << std::endl;
+    return;
+  }
+  if (overrided_method != NULL) {
+    auto overrided_formals = overrided_method->get_formals();
+    auto method_formals = method->get_formals();
+    if (overrided_formals->len() != method_formals->len()) {
+      classtable->semant_error(method)
+          << "Incompatible number of formal parameters in redefined method "
+          << name << "." << std::endl;
+    }
+    for (int i = overrided_formals->first(), j = method_formals->first();
+         overrided_formals->more(i) && method_formals->more(j);
+         i = overrided_formals->next(i), j = method_formals->next(j)) {
+      auto overrided_type = overrided_formals->nth(i)->get_type_decl();
+      auto method_type = method_formals->nth(j)->get_type_decl();
+      if (overrided_type != method_type) {
+        classtable->semant_error(method)
+            << "In redefined method " << name << ", parameter type "
+            << method_type << " is different from original type "
+            << overrided_type << std::endl;
+      }
+    }
+    // Check if the return type is compatible with the original one
+    if (overrided_method->get_return_type() != method->get_return_type()) {
+      // In redefined method g, return type Int is different from original
+      // return type Object.
+      classtable->semant_error(method)
+          << "In redefined method " << name << ", return type "
+          << method->get_return_type()
+          << " is different from original return type "
+          << overrided_method->get_return_type() << "." << std::endl;
+    }
+  }
+  classtable->method_table.addid(name, method);
+}
+static void install_attribute(ClassTableP classtable, attr_class *attr) {
+  auto name = attr->get_name();
+  if (name == self) {
+    classtable->semant_error(attr)
+        << "'self' cannot be the name of an attribute." << std::endl;
+  } else if (classtable->object_table.lookup(name) != NULL) {
+    classtable->semant_error(attr)
+        << "Attribute " << name << " is multiply defined in class."
+        << std::endl;
+  } else {
+    auto type = classtable->lookup_class(attr->get_type_decl());
+    if (type == NULL) {
+      classtable->object_table.addid(name, Object);
+    } else {
+      classtable->object_table.addid(name, attr->get_type_decl());
+    }
+  }
+}
 void class__class::install_features(ClassTable *classtable) {
   // Install symbols from anscestor classes
   auto parent = classtable->lookup_class(get_parent());
@@ -367,34 +426,13 @@ void class__class::install_features(ClassTable *classtable) {
   classtable->object_table.addid(self, SELF_TYPE);
   for (int i = features->first(); features->more(i); i = features->next(i)) {
     auto feature = features->nth(i);
-    auto name = feature->get_name();
-    auto method = dynamic_cast<method_class *>(feature);
-    auto attr = dynamic_cast<attr_class *>(feature);
-    if (method != NULL) {
-      if (classtable->method_table.probe(name) != NULL) {
-        classtable->semant_error(method)
-            << "Method " << name << " is multiply defined." << std::endl;
-      } else if (classtable->method_table.lookup(name) != NULL) {
-        classtable->method_table.addid(name, feature);
-      } else {
-        classtable->method_table.addid(name, feature);
-      }
+    if (feature->is_method()) {
+      auto overrided_method =
+          classtable->lookup_method(parent, feature->get_name());
+      install_method(classtable, dynamic_cast<method_class *>(feature),
+                     overrided_method);
     } else {
-      if (name == self) {
-        classtable->semant_error(attr)
-            << "'self' cannot be the name of an attribute." << std::endl;
-      } else if (classtable->object_table.lookup(name) != NULL) {
-        classtable->semant_error(attr)
-            << "Attribute " << name << " is multiply defined in class."
-            << std::endl;
-      } else {
-        auto type = classtable->lookup_class(attr->get_type_decl());
-        if (type == NULL) {
-          classtable->object_table.addid(name, Object);
-        } else {
-          classtable->object_table.addid(name, attr->get_type_decl());
-        }
-      }
+      install_attribute(classtable, dynamic_cast<attr_class *>(feature));
     }
   }
 }
@@ -829,11 +867,11 @@ void cond_class::semant_name_scope(ClassTableP classtable) {
         << "cond_class::semant_name_scope " << std::endl;
   }
   pred->semant_name_scope(classtable);
+  // Check if pred is of type Bool
   if (pred->get_type() != Bool) {
     classtable->semant_error(this)
         << "Predicate of 'if' does not have type Bool." << std::endl;
   }
-  // TODO: Check if pred is of type Bool
   then_exp->semant_name_scope(classtable);
   else_exp->semant_name_scope(classtable);
   // Set type (join of then and else)
