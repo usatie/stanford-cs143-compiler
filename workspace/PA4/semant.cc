@@ -361,11 +361,23 @@ static void install_method(ClassTableP classtable, method_class *method,
   if (overrided_method != NULL) {
     auto overrided_formals = overrided_method->get_formals();
     auto method_formals = method->get_formals();
+    // 1. Check return type
+    if (overrided_method->get_return_type() != method->get_return_type()) {
+      classtable->semant_error(method)
+          << "In redefined method " << name << ", return type "
+          << method->get_return_type()
+          << " is different from original return type "
+          << overrided_method->get_return_type() << "." << std::endl;
+      return;
+    }
+    // 2. Check number of formals
     if (overrided_formals->len() != method_formals->len()) {
       classtable->semant_error(method)
           << "Incompatible number of formal parameters in redefined method "
           << name << "." << std::endl;
+      return;
     }
+    // 3. Check formal types
     for (int i = overrided_formals->first(), j = method_formals->first();
          overrided_formals->more(i) && method_formals->more(j);
          i = overrided_formals->next(i), j = method_formals->next(j)) {
@@ -376,17 +388,8 @@ static void install_method(ClassTableP classtable, method_class *method,
             << "In redefined method " << name << ", parameter type "
             << method_type << " is different from original type "
             << overrided_type << std::endl;
+        return;
       }
-    }
-    // Check if the return type is compatible with the original one
-    if (overrided_method->get_return_type() != method->get_return_type()) {
-      // In redefined method g, return type Int is different from original
-      // return type Object.
-      classtable->semant_error(method)
-          << "In redefined method " << name << ", return type "
-          << method->get_return_type()
-          << " is different from original return type "
-          << overrided_method->get_return_type() << "." << std::endl;
     }
   }
   classtable->method_table.addid(name, method);
