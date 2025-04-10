@@ -160,8 +160,7 @@ void ClassTable::install_basic_classes() {
   class_table.addid(SELF_TYPE, (Class_)1); // SELF_TYPE is a dummy class
 }
 
-ClassTable::ClassTable(Classes classes)
-    : semant_errors(0), error_stream(cerr), visiting(NULL) {
+ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
 
   /* Fill this in */
 
@@ -329,7 +328,7 @@ ostream &ClassTable::semant_error(Class_ c) {
 }
 
 ostream &ClassTable::semant_error(tree_node *t) {
-  return semant_error(visiting->get_filename(), t);
+  return semant_error(env.c->get_filename(), t);
 }
 
 ostream &ClassTable::semant_error(Symbol filename, tree_node *t) {
@@ -1017,7 +1016,7 @@ void ClassTable::semant_name_scope(Classes classes) {
     auto c = classes->nth(i);
     class_table.enterscope(); // In order to add SELF_TYPE and later remove it
     class_table.addid(SELF_TYPE, c);
-    visiting = c;
+    env.c = c;
     c->semant_name_scope(this);
     class_table.exitscope();
   }

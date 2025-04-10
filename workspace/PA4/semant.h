@@ -22,6 +22,13 @@ typedef SymbolTable<Symbol, tree_node> SymTab;
 // you like: it is only here to provide a container for the supplied
 // methods.
 
+class Environment {
+  typedef Class_ CurrentClass;
+
+public:
+  CurrentClass c;
+};
+
 class ClassTable {
 private:
   int semant_errors;
@@ -35,13 +42,13 @@ private:
   bool has_cyclic_inheritance(Class_ orig, Class_ curr);
   ostream &error_stream;
   InternalClassTable class_table;
-  Class_ visiting;
 
 public:
   ObjectTable object_table;
   SymTab method_table;
   InternalClassTable branch_table;
   ClassTable(Classes);
+  Environment env;
   int errors() { return semant_errors; }
   ostream &semant_error();
   ostream &semant_error(Class_ c);
