@@ -7,9 +7,6 @@
 extern int semant_debug;
 extern char *curr_filename;
 
-// TODO: Think more about the implementation of self to object_table (in order
-// to print SELF_TYPE)
-
 //////////////////////////////////////////////////////////////////////
 //
 // Symbols
@@ -796,7 +793,7 @@ void let_class::semant_name_scope(ClassTableP classtable) {
 }
 
 void block_class::semant_name_scope(ClassTableP classtable) {
-  // TODO: Empty block check
+  // Empty block check is not necessary (because it is handled in the parser)
   for (int i = body->first(); body->more(i); i = body->next(i)) {
     body->nth(i)->semant_name_scope(classtable);
     // Set type of the last expression
@@ -805,7 +802,7 @@ void block_class::semant_name_scope(ClassTableP classtable) {
 }
 
 void typcase_class::semant_name_scope(ClassTableP classtable) {
-  // TODO: Empty case check
+  // Empty case check is not necessary (because it is handled in the parser)
   expr->semant_name_scope(classtable);
   classtable->branch_table.enterscope();
   for (int i = cases->first(); cases->more(i); i = cases->next(i)) {
@@ -894,7 +891,6 @@ void dispatch_class::semant_name_scope(ClassTableP classtable) {
   } else {
     // Set type of the method
     set_type(method->get_return_type());
-    // TODO: We need to set the type of the method's class
     if (get_type() == SELF_TYPE) {
       set_type(expr_type);
     }
@@ -946,7 +942,6 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
   } else {
     // Check if name is a method of the parent class
     set_type(method->get_return_type());
-    // TODO: We need to set the type of the method's class
     if (get_type() == SELF_TYPE) {
       set_type(expr->get_type());
     }
