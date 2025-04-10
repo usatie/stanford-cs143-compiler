@@ -22,11 +22,19 @@ typedef SymbolTable<Symbol, tree_node> SymTab;
 // you like: it is only here to provide a container for the supplied
 // methods.
 
-class Environment {
+class TypeEnvironment {
+private:
+  typedef SymbolTable<Symbol, Entry> ObjectEnvironment;
+  typedef SymbolTable<Symbol, Formals> MethodEnvironment;
   typedef Class_ CurrentClass;
 
 public:
+  TypeEnvironment();
+  ~TypeEnvironment();
+  ObjectEnvironment o;
+  MethodEnvironment m;
   CurrentClass c;
+  void add_method(Symbol name, Formals *formals) { m.addid(name, formals); }
 };
 
 class ClassTable {
@@ -44,11 +52,9 @@ private:
   InternalClassTable class_table;
 
 public:
-  ObjectTable object_table;
   SymTab method_table;
   InternalClassTable branch_table;
   ClassTable(Classes);
-  Environment env;
   int errors() { return semant_errors; }
   ostream &semant_error();
   ostream &semant_error(Class_ c);

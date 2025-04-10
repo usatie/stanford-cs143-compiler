@@ -20,6 +20,8 @@ static Symbol arg, arg2, Bool, concat, cool_abort, copy, Int, in_int, in_string,
     IO, length, Main, main_meth, No_class, No_type, Object, out_int, out_string,
     prim_slot, self, SELF_TYPE, Str, str_field, substr, type_name, val;
 static Class_ Object_class;
+// TODO: Refactor this as non-global variable later
+static TypeEnvironment env;
 //
 // Initializing the predefined symbols.
 //
@@ -52,6 +54,7 @@ static void initialize_constants(void) {
   substr = idtable.add_string("substr");
   type_name = idtable.add_string("type_name");
   val = idtable.add_string("_val");
+  env = TypeEnvironment();
 }
 
 void ClassTable::install_basic_classes() {
@@ -173,6 +176,28 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0), error_stream(cerr) {
   // Postorder : Inheritance check
   traverse_classes(classes, 0, &ClassTable::install_class,
                    &ClassTable::validate_inheritance);
+}
+
+////////////////////////////////////////////////////////////////////
+//
+// TypeEnvironment is a class that contains the symbol table for the
+// type environment. It is used to store the types of the variables and
+// attributes in the class hierarchy.
+//
+//   1. Object Environment O
+//   2. Method Environment M
+//   3. Current Class C
+//
+///////////////////////////////////////////////////////////////////
+TypeEnvironment::TypeEnvironment() : o(), m(), c(nullptr) {
+  o.enterscope();
+  m.enterscope();
+  o.addid(self, SELF_TYPE);
+}
+
+TypeEnvironment::~TypeEnvironment() {
+  o.exitscope();
+  m.exitscope();
 }
 
 /* Check Illegal Undefined/Basic class inheritance */
@@ -395,16 +420,16 @@ static void install_attribute(ClassTableP classtable, attr_class *attr) {
   if (name == self) {
     classtable->semant_error(attr)
         << "'self' cannot be the name of an attribute." << std::endl;
-  } else if (classtable->object_table.lookup(name) != NULL) {
+  } else if (env.o.lookup(name) != NULL) {
     classtable->semant_error(attr)
         << "Attribute " << name << " is multiply defined in class."
         << std::endl;
   } else {
     auto type = classtable->lookup_class(attr->get_type_decl());
     if (type == NULL) {
-      classtable->object_table.addid(name, Object);
+      env.o.addid(name, Object);
     } else {
-      classtable->object_table.addid(name, attr->get_type_decl());
+      env.o.addid(name, attr->get_type_decl());
     }
   }
 }
@@ -421,8 +446,7 @@ void class__class::install_features(ClassTable *classtable) {
   // Attributes:
   //   1. Inherited attributes cannot be redefined.
   classtable->method_table.enterscope();
-  classtable->object_table.enterscope();
-  classtable->object_table.addid(self, SELF_TYPE);
+  env.o.enterscope();
   for (int i = features->first(); features->more(i); i = features->next(i)) {
     auto feature = features->nth(i);
     if (feature->is_method()) {
@@ -439,7 +463,7 @@ void class__class::install_features(ClassTable *classtable) {
 void class__class::exit_scope(ClassTable *classtable) {
   // Exit the scope of the class
   classtable->method_table.exitscope();
-  classtable->object_table.exitscope();
+  env.o.exitscope();
   // Exit the scope of the ancestor classes
   auto parent = classtable->lookup_class(get_parent());
   if (parent != NULL) {
@@ -569,7 +593,7 @@ void method_class::semant_name_scope(ClassTableP classtable) {
                                    << " in method " << name << "." << std::endl;
   }
   // Install the names of the formals in the symbol table
-  classtable->object_table.enterscope();
+  env.o.enterscope();
   for (int i = formals->first(); formals->more(i); i = formals->next(i)) {
     auto formal = formals->nth(i);
     formal->semant_name_scope(classtable);
@@ -584,7 +608,7 @@ void method_class::semant_name_scope(ClassTableP classtable) {
         << " does not conform to declared return type " << return_type << "."
         << std::endl;
   }
-  classtable->object_table.exitscope();
+  env.o.exitscope();
 }
 
 void attr_class::semant_name_scope(ClassTableP classtable) {
@@ -609,14 +633,14 @@ void formal_class::semant_name_scope(ClassTableP classtable) {
   if (name == self) {
     classtable->semant_error(this)
         << "'self' cannot be the name of a formal parameter." << std::endl;
-  } else if (classtable->object_table.probe(name) != NULL) {
+  } else if (env.o.probe(name) != NULL) {
     classtable->semant_error(this)
         << "Formal parameter " << name << " is multiply defined." << std::endl;
   } else {
     if (type_cls == NULL) {
-      classtable->object_table.addid(name, Object);
+      env.o.addid(name, Object);
     } else {
-      classtable->object_table.addid(name, type_decl);
+      env.o.addid(name, type_decl);
     }
   }
   if (type_decl == SELF_TYPE) {
@@ -778,16 +802,16 @@ void let_class::semant_name_scope(ClassTableP classtable) {
         << identifier_type << "." << std::endl;
   }
   // 4. Add identifier to object table
-  classtable->object_table.enterscope();
+  env.o.enterscope();
   if (identifier == self) {
     classtable->semant_error(this)
         << "'self' cannot be bound in a 'let' expression." << std::endl;
   } else {
-    classtable->object_table.addid(identifier, identifier_type);
+    env.o.addid(identifier, identifier_type);
   }
   // 5. Check body expression
   body->semant_name_scope(classtable);
-  classtable->object_table.exitscope();
+  env.o.exitscope();
   set_type(body->get_type());
 }
 
@@ -817,16 +841,16 @@ void typcase_class::semant_name_scope(ClassTableP classtable) {
 }
 
 void branch_class::semant_name_scope(ClassTableP classtable) {
-  classtable->object_table.enterscope();
+  env.o.enterscope();
   auto type = classtable->lookup_class(type_decl);
   // Add the branch name to the object table (variable)
   if (name == self) {
     classtable->semant_error(this) << "'self' bound in 'case'." << std::endl;
   } else {
     if (type == NULL) {
-      classtable->object_table.addid(name, Object);
+      env.o.addid(name, Object);
     } else {
-      classtable->object_table.addid(name, type_decl);
+      env.o.addid(name, type_decl);
     }
   }
   // Add the branch to the branch table (type)
@@ -847,7 +871,7 @@ void branch_class::semant_name_scope(ClassTableP classtable) {
         << " declared with type SELF_TYPE in case branch." << std::endl;
   }
   expr->semant_name_scope(classtable);
-  classtable->object_table.exitscope();
+  env.o.exitscope();
 }
 
 void loop_class::semant_name_scope(ClassTableP classtable) {
@@ -973,7 +997,7 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
 
 void assign_class::semant_name_scope(ClassTableP classtable) {
   // 1. Check the identifier
-  auto declared_type = classtable->object_table.lookup(name);
+  auto declared_type = env.o.lookup(name);
   if (name == self) {
     classtable->semant_error(this) << "Cannot assign to 'self'." << std::endl;
   } else if (declared_type == NULL) {
@@ -994,7 +1018,7 @@ void assign_class::semant_name_scope(ClassTableP classtable) {
 }
 
 void object_class::semant_name_scope(ClassTableP classtable) {
-  auto declared_type = classtable->object_table.lookup(name);
+  auto declared_type = env.o.lookup(name);
   if (declared_type == NULL) {
     classtable->semant_error(this)
         << "Undeclared identifier " << name << "." << std::endl;
