@@ -374,7 +374,7 @@ ostream &ClassTable::semant_error() {
 static void install_method(ClassTableP classtable, method_class *method,
                            method_class *overrided_method) {
   auto name = method->get_name();
-  if (classtable->method_table.probe(name) != NULL) {
+  if (env.m.probe(name) != NULL) {
     classtable->semant_error(method)
         << "Method " << name << " is multiply defined." << std::endl;
     return;
@@ -413,7 +413,7 @@ static void install_method(ClassTableP classtable, method_class *method,
       }
     }
   }
-  classtable->method_table.addid(name, method);
+  env.m.addid(name, method);
 }
 static void install_attribute(ClassTableP classtable, attr_class *attr) {
   auto name = attr->get_name();
@@ -445,7 +445,7 @@ void class__class::install_features(ClassTable *classtable) {
   //   2. however, duplicate methods are not allowed
   // Attributes:
   //   1. Inherited attributes cannot be redefined.
-  classtable->method_table.enterscope();
+  env.m.enterscope();
   env.o.enterscope();
   for (int i = features->first(); features->more(i); i = features->next(i)) {
     auto feature = features->nth(i);
@@ -462,7 +462,7 @@ void class__class::install_features(ClassTable *classtable) {
 
 void class__class::exit_scope(ClassTable *classtable) {
   // Exit the scope of the class
-  classtable->method_table.exitscope();
+  env.m.exitscope();
   env.o.exitscope();
   // Exit the scope of the ancestor classes
   auto parent = classtable->lookup_class(get_parent());
