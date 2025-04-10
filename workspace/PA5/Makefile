@@ -54,6 +54,18 @@ dotest:	cgen example.cl
 	@echo "\nRunning code generator on example.cl\n"
 	-./mycoolc example.cl
 
+.PHONY: grade
+grade: cgen
+	perl pa4-grading.pl
+
+.PHONY: fmt
+fmt:
+	clang-format -i cgen.cc cgen.h cgen_supp.cc emit.h symtab.h cool-tree.handcode.h
+
+.PHONY: test
+test: cgen
+	./tests/run_all_tests.sh
+
 ${LIBS}:
 	${CLASSDIR}/etc/link-object ${ASSN} $@
 
