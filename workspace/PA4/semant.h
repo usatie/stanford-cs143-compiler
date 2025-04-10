@@ -32,22 +32,18 @@ private:
   void validate_inheritance(Class_ c);
   bool has_cyclic_inheritance(Class_ orig, Class_ curr);
   ostream &error_stream;
-  InternalClassTable class_table;
 
 public:
+  InternalClassTable class_table;
   InternalClassTable branch_table;
   ClassTable(Classes);
   int errors() { return semant_errors; }
   ostream &semant_error();
   ostream &semant_error(Class_ c);
-  ostream &semant_error(tree_node *t);
   ostream &semant_error(Symbol filename, tree_node *t);
 
   void semant_cyclic_inheritance(Classes classes);
   void semant_name_scope(Classes classes);
-  Class_ lookup_class(Symbol name);
-  bool conforms_to(Symbol A, Symbol B);
-  Symbol join_type(Symbol s1, Symbol s2);
   method_class *lookup_method(Class_ cls, Symbol name);
   void semant_main();
 };
@@ -65,6 +61,11 @@ public:
   ObjectEnvironment o;
   MethodEnvironment m;
   CurrentClass c;
+  ostream &semant_error(tree_node *t);
+  int errors() { return classtable->errors(); }
+  Class_ lookup_class(Symbol name) {
+    return classtable->class_table.lookup(name);
+  }
 };
 
 #endif

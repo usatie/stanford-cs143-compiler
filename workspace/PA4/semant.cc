@@ -200,6 +200,10 @@ TypeEnvironment::~TypeEnvironment() {
   m.exitscope();
 }
 
+ostream &TypeEnvironment::semant_error(tree_node *t) {
+  return classtable->semant_error(c->get_filename(), t);
+}
+
 /* Check Illegal Undefined/Basic class inheritance */
 // 1. Install user-defined classes
 // 2. Recursive call to install user-defined class
@@ -352,10 +356,6 @@ ostream &ClassTable::semant_error(Class_ c) {
   return semant_error(c->get_filename(), c);
 }
 
-ostream &ClassTable::semant_error(tree_node *t) {
-  return semant_error(env->c->get_filename(), t);
-}
-
 ostream &ClassTable::semant_error(Symbol filename, tree_node *t) {
   error_stream << filename << ":" << t->get_line_number() << ": ";
   return semant_error();
@@ -375,7 +375,7 @@ static void install_method(ClassTableP classtable, method_class *method,
                            method_class *overrided_method) {
   auto name = method->get_name();
   if (env->m.probe(name) != NULL) {
-    classtable->semant_error(method)
+    env->semant_error(method)
         << "Method " << name << " is multiply defined." << std::endl;
     return;
   }
@@ -384,7 +384,7 @@ static void install_method(ClassTableP classtable, method_class *method,
     auto method_formals = method->get_formals();
     // 1. Check return type
     if (overrided_method->get_return_type() != method->get_return_type()) {
-      classtable->semant_error(method)
+      env->semant_error(method)
           << "In redefined method " << name << ", return type "
           << method->get_return_type()
           << " is different from original return type "
@@ -393,7 +393,7 @@ static void install_method(ClassTableP classtable, method_class *method,
     }
     // 2. Check number of formals
     if (overrided_formals->len() != method_formals->len()) {
-      classtable->semant_error(method)
+      env->semant_error(method)
           << "Incompatible number of formal parameters in redefined method "
           << name << "." << std::endl;
       return;
@@ -405,7 +405,7 @@ static void install_method(ClassTableP classtable, method_class *method,
       auto overrided_type = overrided_formals->nth(i)->get_type_decl();
       auto method_type = method_formals->nth(j)->get_type_decl();
       if (overrided_type != method_type) {
-        classtable->semant_error(method)
+        env->semant_error(method)
             << "In redefined method " << name << ", parameter type "
             << method_type << " is different from original type "
             << overrided_type << std::endl;
@@ -418,14 +418,13 @@ static void install_method(ClassTableP classtable, method_class *method,
 static void install_attribute(ClassTableP classtable, attr_class *attr) {
   auto name = attr->get_name();
   if (name == self) {
-    classtable->semant_error(attr)
+    env->semant_error(attr)
         << "'self' cannot be the name of an attribute." << std::endl;
   } else if (env->o.lookup(name) != NULL) {
-    classtable->semant_error(attr)
-        << "Attribute " << name << " is multiply defined in class."
-        << std::endl;
+    env->semant_error(attr) << "Attribute " << name
+                            << " is multiply defined in class." << std::endl;
   } else {
-    auto type = classtable->lookup_class(attr->get_type_decl());
+    auto type = env->lookup_class(attr->get_type_decl());
     if (type == NULL) {
       env->o.addid(name, Object);
     } else {
@@ -435,7 +434,7 @@ static void install_attribute(ClassTableP classtable, attr_class *attr) {
 }
 void class__class::install_features(ClassTable *classtable) {
   // Install symbols from anscestor classes
-  auto parent = classtable->lookup_class(get_parent());
+  auto parent = env->lookup_class(get_parent());
   if (parent != NULL) {
     parent->install_features(classtable);
   }
@@ -465,7 +464,7 @@ void class__class::exit_scope(ClassTable *classtable) {
   env->m.exitscope();
   env->o.exitscope();
   // Exit the scope of the ancestor classes
-  auto parent = classtable->lookup_class(get_parent());
+  auto parent = env->lookup_class(get_parent());
   if (parent != NULL) {
     parent->exit_scope(classtable);
   }
@@ -484,12 +483,12 @@ void class__class::exit_scope(ClassTable *classtable) {
 //   determine the static type of joining two classes.
 //
 ///////////////////////////////////////////////////////////////////
-bool ClassTable::conforms_to(Symbol A, Symbol B) {
+bool conforms_to(Symbol A, Symbol B) {
   // A ≤ A for all types A
   if (A == B) {
     return true;
   }
-  auto A_class = lookup_class(A);
+  auto A_class = env->lookup_class(A);
   if (A_class == NULL) {
     return false;
   }
@@ -501,7 +500,7 @@ bool ClassTable::conforms_to(Symbol A, Symbol B) {
   return conforms_to(A_class->get_parent(), B);
 }
 
-Symbol ClassTable::join_type(Symbol s1, Symbol s2) {
+Symbol join_type(Symbol s1, Symbol s2) {
   // case 1 : s1 is a subclass of s2
   if (conforms_to(s1, s2)) {
     return s2;
@@ -511,8 +510,8 @@ Symbol ClassTable::join_type(Symbol s1, Symbol s2) {
     return s1;
   }
   // case 3 : s1 and s2 has a common ancestor
-  auto s1_class = lookup_class(s1);
-  auto s2_class = lookup_class(s2);
+  auto s1_class = env->lookup_class(s1);
+  auto s2_class = env->lookup_class(s2);
   return join_type(s1_class->get_parent(), s2_class->get_parent());
 }
 
@@ -537,7 +536,7 @@ method_class *ClassTable::lookup_method(Class_ cls, Symbol name) {
   if (method != NULL) {
     return method;
   }
-  auto parent = lookup_class(cls->get_parent());
+  auto parent = env->lookup_class(cls->get_parent());
   return lookup_method(parent, name);
 }
 
@@ -587,10 +586,10 @@ void class__class::semant_name_scope(ClassTableP classtable) {
 }
 
 void method_class::semant_name_scope(ClassTableP classtable) {
-  bool is_return_type_defined = classtable->lookup_class(return_type) != NULL;
+  bool is_return_type_defined = env->lookup_class(return_type) != NULL;
   if (!is_return_type_defined) {
-    classtable->semant_error(this) << "Undefined return type " << return_type
-                                   << " in method " << name << "." << std::endl;
+    env->semant_error(this) << "Undefined return type " << return_type
+                            << " in method " << name << "." << std::endl;
   }
   // Install the names of the formals in the symbol table
   env->o.enterscope();
@@ -601,9 +600,8 @@ void method_class::semant_name_scope(ClassTableP classtable) {
   // Check if expr type matches return_type
   expr->semant_name_scope(classtable);
   // TODO: Only check return_type when the expr has no errors?
-  if (is_return_type_defined &&
-      !classtable->conforms_to(expr->get_type(), return_type)) {
-    classtable->semant_error(this)
+  if (is_return_type_defined && !conforms_to(expr->get_type(), return_type)) {
+    env->semant_error(this)
         << "Inferred return type " << expr->get_type() << " of method " << name
         << " does not conform to declared return type " << return_type << "."
         << std::endl;
@@ -613,28 +611,27 @@ void method_class::semant_name_scope(ClassTableP classtable) {
 
 void attr_class::semant_name_scope(ClassTableP classtable) {
   init->semant_name_scope(classtable);
-  if (classtable->lookup_class(type_decl) == NULL) {
-    classtable->semant_error(this) << "Class " << type_decl << " of attribute "
-                                   << name << " is undefined." << std::endl;
+  if (env->lookup_class(type_decl) == NULL) {
+    env->semant_error(this) << "Class " << type_decl << " of attribute " << name
+                            << " is undefined." << std::endl;
   }
   // Check if type of init conforms to the type_decl
   // init can be no_expr(), we don't check it then
-  if (init->get_type() &&
-      !classtable->conforms_to(init->get_type(), type_decl)) {
-    classtable->semant_error(this) << "Inferred type " << init->get_type()
-                                   << " of initialization of attribute " << name
-                                   << " does not conform to declared type "
-                                   << type_decl << "." << std::endl;
+  if (init->get_type() && !conforms_to(init->get_type(), type_decl)) {
+    env->semant_error(this) << "Inferred type " << init->get_type()
+                            << " of initialization of attribute " << name
+                            << " does not conform to declared type "
+                            << type_decl << "." << std::endl;
   }
 }
 
 void formal_class::semant_name_scope(ClassTableP classtable) {
-  auto type_cls = classtable->lookup_class(type_decl);
+  auto type_cls = env->lookup_class(type_decl);
   if (name == self) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "'self' cannot be the name of a formal parameter." << std::endl;
   } else if (env->o.probe(name) != NULL) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "Formal parameter " << name << " is multiply defined." << std::endl;
   } else {
     if (type_cls == NULL) {
@@ -644,13 +641,11 @@ void formal_class::semant_name_scope(ClassTableP classtable) {
     }
   }
   if (type_decl == SELF_TYPE) {
-    classtable->semant_error(this)
-        << "Formal parameter " << name << " cannot have type SELF_TYPE."
-        << std::endl;
+    env->semant_error(this) << "Formal parameter " << name
+                            << " cannot have type SELF_TYPE." << std::endl;
   } else if (type_cls == NULL) {
-    classtable->semant_error(this)
-        << "Class " << type_decl << " of formal parameter " << name
-        << " is undefined." << std::endl;
+    env->semant_error(this) << "Class " << type_decl << " of formal parameter "
+                            << name << " is undefined." << std::endl;
   }
 }
 
@@ -662,9 +657,9 @@ void isvoid_class::semant_name_scope(ClassTableP classtable) {
 }
 
 void new__class::semant_name_scope(ClassTableP classtable) {
-  auto type = classtable->lookup_class(type_name);
+  auto type = env->lookup_class(type_name);
   if (type == NULL) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "'new' used with undefined class " << type_name << "." << std::endl;
     set_type(Object);
   } else {
@@ -688,9 +683,8 @@ void comp_class::semant_name_scope(ClassTableP classtable) {
   set_type(Bool);
   e1->semant_name_scope(classtable);
   if (e1->get_type() != Bool) {
-    classtable->semant_error(this)
-        << "Argument of 'not' has type " << e1->get_type()
-        << " instead of Bool." << std::endl;
+    env->semant_error(this) << "Argument of 'not' has type " << e1->get_type()
+                            << " instead of Bool." << std::endl;
   }
 }
 
@@ -699,8 +693,8 @@ void leq_class::semant_name_scope(ClassTableP classtable) {
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
   if (e1->get_type() != Int || e2->get_type() != Int) {
-    classtable->semant_error(this) << "non-Int arguments: " << e1->get_type()
-                                   << " <= " << e2->get_type() << std::endl;
+    env->semant_error(this) << "non-Int arguments: " << e1->get_type()
+                            << " <= " << e2->get_type() << std::endl;
   }
 }
 
@@ -714,7 +708,7 @@ void eq_class::semant_name_scope(ClassTableP classtable) {
   e2->semant_name_scope(classtable);
   if (is_basic_type(e1->get_type()) || is_basic_type(e2->get_type())) {
     if (e1->get_type() != e2->get_type()) {
-      classtable->semant_error(this)
+      env->semant_error(this)
           << "Illegal comparison with a basic type." << std::endl;
     }
   }
@@ -725,8 +719,8 @@ void lt_class::semant_name_scope(ClassTableP classtable) {
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
   if (e1->get_type() != Int || e2->get_type() != Int) {
-    classtable->semant_error(this) << "non-Int arguments: " << e1->get_type()
-                                   << " < " << e2->get_type() << std::endl;
+    env->semant_error(this) << "non-Int arguments: " << e1->get_type() << " < "
+                            << e2->get_type() << std::endl;
   }
 }
 
@@ -734,9 +728,8 @@ void neg_class::semant_name_scope(ClassTableP classtable) {
   set_type(Int);
   e1->semant_name_scope(classtable);
   if (e1->get_type() != Int) {
-    classtable->semant_error(this)
-        << "Argument of '~' has type " << e1->get_type() << " instead of Int."
-        << std::endl;
+    env->semant_error(this) << "Argument of '~' has type " << e1->get_type()
+                            << " instead of Int." << std::endl;
   }
 }
 
@@ -745,8 +738,8 @@ void divide_class::semant_name_scope(ClassTableP classtable) {
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
   if (e1->get_type() != Int || e2->get_type() != Int) {
-    classtable->semant_error(this) << "non-Int arguments: " << e1->get_type()
-                                   << " / " << e2->get_type() << std::endl;
+    env->semant_error(this) << "non-Int arguments: " << e1->get_type() << " / "
+                            << e2->get_type() << std::endl;
   }
 }
 
@@ -755,8 +748,8 @@ void mul_class::semant_name_scope(ClassTableP classtable) {
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
   if (e1->get_type() != Int || e2->get_type() != Int) {
-    classtable->semant_error(this) << "non-Int arguments: " << e1->get_type()
-                                   << " * " << e2->get_type() << std::endl;
+    env->semant_error(this) << "non-Int arguments: " << e1->get_type() << " * "
+                            << e2->get_type() << std::endl;
   }
 }
 
@@ -765,8 +758,8 @@ void sub_class::semant_name_scope(ClassTableP classtable) {
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
   if (e1->get_type() != Int || e2->get_type() != Int) {
-    classtable->semant_error(this) << "non-Int arguments: " << e1->get_type()
-                                   << " - " << e2->get_type() << std::endl;
+    env->semant_error(this) << "non-Int arguments: " << e1->get_type() << " - "
+                            << e2->get_type() << std::endl;
   }
 }
 
@@ -775,16 +768,16 @@ void plus_class::semant_name_scope(ClassTableP classtable) {
   e1->semant_name_scope(classtable);
   e2->semant_name_scope(classtable);
   if (e1->get_type() != Int || e2->get_type() != Int) {
-    classtable->semant_error(this) << "non-Int arguments: " << e1->get_type()
-                                   << " + " << e2->get_type() << std::endl;
+    env->semant_error(this) << "non-Int arguments: " << e1->get_type() << " + "
+                            << e2->get_type() << std::endl;
   }
 }
 
 void let_class::semant_name_scope(ClassTableP classtable) {
   // 1. Check Undefined type_decl
   auto identifier_type = type_decl;
-  if (classtable->lookup_class(type_decl) == NULL) {
-    classtable->semant_error(this)
+  if (env->lookup_class(type_decl) == NULL) {
+    env->semant_error(this)
         << "Class " << type_decl << " of let-bound identifier " << identifier
         << " is undefined." << std::endl;
     identifier_type = Object; // Set to Object if undefined
@@ -794,9 +787,8 @@ void let_class::semant_name_scope(ClassTableP classtable) {
   // 3. Check if the type_decl and init.type matches (Only check if init is not
   // no_expr)
   bool init_omitted = init->get_type() == NULL; // no_expr does not have a type
-  if (!init_omitted &&
-      !classtable->conforms_to(init->get_type(), identifier_type)) {
-    classtable->semant_error(this)
+  if (!init_omitted && !conforms_to(init->get_type(), identifier_type)) {
+    env->semant_error(this)
         << "Inferred type " << init->get_type() << " of initialization of "
         << identifier << " does not conform to identifier's declared type "
         << identifier_type << "." << std::endl;
@@ -804,7 +796,7 @@ void let_class::semant_name_scope(ClassTableP classtable) {
   // 4. Add identifier to object table
   env->o.enterscope();
   if (identifier == self) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "'self' cannot be bound in a 'let' expression." << std::endl;
   } else {
     env->o.addid(identifier, identifier_type);
@@ -834,7 +826,7 @@ void typcase_class::semant_name_scope(ClassTableP classtable) {
     if (type == NULL) {
       set_type(branch->get_type());
     } else {
-      set_type(classtable->join_type(branch->get_type(), get_type()));
+      set_type(join_type(branch->get_type(), get_type()));
     }
   }
   classtable->branch_table.exitscope();
@@ -842,10 +834,10 @@ void typcase_class::semant_name_scope(ClassTableP classtable) {
 
 void branch_class::semant_name_scope(ClassTableP classtable) {
   env->o.enterscope();
-  auto type = classtable->lookup_class(type_decl);
+  auto type = env->lookup_class(type_decl);
   // Add the branch name to the object table (variable)
   if (name == self) {
-    classtable->semant_error(this) << "'self' bound in 'case'." << std::endl;
+    env->semant_error(this) << "'self' bound in 'case'." << std::endl;
   } else {
     if (type == NULL) {
       env->o.addid(name, Object);
@@ -855,18 +847,18 @@ void branch_class::semant_name_scope(ClassTableP classtable) {
   }
   // Add the branch to the branch table (type)
   if (type == NULL) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "Class " << type_decl << " of case-bound identifier " << name
         << " is undefined." << std::endl;
   } else if (classtable->branch_table.probe(type_decl) != NULL) {
-    classtable->semant_error(this) << "Duplicate branch " << type_decl
-                                   << " in case statement." << std::endl;
+    env->semant_error(this) << "Duplicate branch " << type_decl
+                            << " in case statement." << std::endl;
   } else {
     classtable->branch_table.addid(type_decl, type);
   }
   // Check illegal SELF_TYPE usage
   if (type_decl == SELF_TYPE) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "Identifier " << name
         << " declared with type SELF_TYPE in case branch." << std::endl;
   }
@@ -879,37 +871,36 @@ void loop_class::semant_name_scope(ClassTableP classtable) {
   pred->semant_name_scope(classtable);
   body->semant_name_scope(classtable);
   if (pred->get_type() != Bool) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "Loop condition does not have type Bool." << std::endl;
   }
 }
 
 void cond_class::semant_name_scope(ClassTableP classtable) {
   if (semant_debug) {
-    classtable->semant_error(this)
-        << "cond_class::semant_name_scope " << std::endl;
+    env->semant_error(this) << "cond_class::semant_name_scope " << std::endl;
   }
   pred->semant_name_scope(classtable);
   // Check if pred is of type Bool
   if (pred->get_type() != Bool) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "Predicate of 'if' does not have type Bool." << std::endl;
   }
   then_exp->semant_name_scope(classtable);
   else_exp->semant_name_scope(classtable);
   // Set type (join of then and else)
-  set_type(classtable->join_type(then_exp->get_type(), else_exp->get_type()));
+  set_type(join_type(then_exp->get_type(), else_exp->get_type()));
 }
 
 void dispatch_class::semant_name_scope(ClassTableP classtable) {
   expr->semant_name_scope(classtable);
   auto expr_type = expr->get_type();
   // Check if name is a method of the class of the expr
-  auto expr_class = classtable->lookup_class(expr_type);
+  auto expr_class = env->lookup_class(expr_type);
   auto method = classtable->lookup_method(expr_class, name);
   set_type(Object);
   if (method == NULL) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "Dispatch to undefined method " << name << "." << std::endl;
   } else {
     // Set type of the method
@@ -919,7 +910,7 @@ void dispatch_class::semant_name_scope(ClassTableP classtable) {
     }
   }
   if (method && actual->len() != method->get_formals()->len()) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "Method " << name << " called with wrong number of arguments."
         << std::endl;
   } else {
@@ -931,8 +922,8 @@ void dispatch_class::semant_name_scope(ClassTableP classtable) {
         auto actual_type = actual_expr->get_type();
         auto formal_type = formal->get_type_decl();
         // Check if the actual type conforms to the formal type
-        if (!classtable->conforms_to(actual_type, formal_type)) {
-          classtable->semant_error(this)
+        if (!conforms_to(actual_type, formal_type)) {
+          env->semant_error(this)
               << "In call of method " << name << ", type " << actual_type
               << " of parameter " << formal->get_name()
               << " does not conform to declared type " << formal_type << "."
@@ -947,20 +938,19 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
   // Check expr conforms to the type_name : e.g. `(new C)@B.f()`, where B should
   // be the ancestor of C.
   expr->semant_name_scope(classtable);
-  auto left_class = classtable->lookup_class(expr->get_type());
-  auto right_class = classtable->lookup_class(type_name);
+  auto left_class = env->lookup_class(expr->get_type());
+  auto right_class = env->lookup_class(type_name);
   auto method = classtable->lookup_method(right_class, name);
   set_type(Object);
   if (type_name == SELF_TYPE) {
-    classtable->semant_error(this)
-        << "Static dispatch to SELF_TYPE." << std::endl;
-  } else if (!classtable->conforms_to(expr->get_type(), type_name)) {
-    classtable->semant_error(this)
+    env->semant_error(this) << "Static dispatch to SELF_TYPE." << std::endl;
+  } else if (!conforms_to(expr->get_type(), type_name)) {
+    env->semant_error(this)
         << "Expression type " << expr->get_type()
         << " does not conform to declared static dispatch type " << type_name
         << "." << std::endl;
   } else if (method == NULL) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "Dispatch to undefined method " << name << "." << std::endl;
   } else {
     // Check if name is a method of the parent class
@@ -971,7 +961,7 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
   }
 
   if (method && actual->len() != method->get_formals()->len()) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "Method " << name << " called with wrong number of arguments."
         << std::endl;
   } else {
@@ -983,8 +973,8 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
         auto actual_type = actual_expr->get_type();
         auto formal_type = formal->get_type_decl();
         // Check if the actual type conforms to the formal type
-        if (!classtable->conforms_to(actual_type, formal_type)) {
-          classtable->semant_error(this)
+        if (!conforms_to(actual_type, formal_type)) {
+          env->semant_error(this)
               << "In call of method " << name << ", type " << actual_type
               << " of parameter " << formal->get_name()
               << " does not conform to declared type " << formal_type << "."
@@ -999,9 +989,9 @@ void assign_class::semant_name_scope(ClassTableP classtable) {
   // 1. Check the identifier
   auto declared_type = env->o.lookup(name);
   if (name == self) {
-    classtable->semant_error(this) << "Cannot assign to 'self'." << std::endl;
+    env->semant_error(this) << "Cannot assign to 'self'." << std::endl;
   } else if (declared_type == NULL) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "Assignment to undeclared variable " << name << "." << std::endl;
     declared_type = Object; // Default to Object if not found
   }
@@ -1009,8 +999,8 @@ void assign_class::semant_name_scope(ClassTableP classtable) {
   expr->semant_name_scope(classtable);
   set_type(expr->get_type());
   // 3. Check the type conformance (expr <= declared_type)
-  if (!classtable->conforms_to(expr->get_type(), declared_type)) {
-    classtable->semant_error(this)
+  if (!conforms_to(expr->get_type(), declared_type)) {
+    env->semant_error(this)
         << "Type " << expr->get_type()
         << " of assigned expression does not conform to declared type "
         << declared_type << " of identifier " << name << "." << std::endl;
@@ -1020,7 +1010,7 @@ void assign_class::semant_name_scope(ClassTableP classtable) {
 void object_class::semant_name_scope(ClassTableP classtable) {
   auto declared_type = env->o.lookup(name);
   if (declared_type == NULL) {
-    classtable->semant_error(this)
+    env->semant_error(this)
         << "Undeclared identifier " << name << "." << std::endl;
     set_type(Object);
   } else {
@@ -1061,7 +1051,7 @@ void ClassTable::semant_name_scope(Classes classes) {
  */
 
 void ClassTable::semant_main() {
-  auto c = lookup_class(Main);
+  auto c = env->lookup_class(Main);
   if (c == NULL) {
     semant_error() << "Class Main is not defined." << std::endl;
     return;
@@ -1086,15 +1076,15 @@ void program_class::semant() {
   /* some semantic analysis code may go here */
 
   /* Check Cyclic Inheritance */
-  if (classtable->errors() == 0) {
+  if (env->errors() == 0) {
     classtable->semant_cyclic_inheritance(classes);
   }
   /* Check Naming and Scoping */
-  if (classtable->errors() == 0) {
+  if (env->errors() == 0) {
     classtable->semant_name_scope(classes);
   }
 
-  if (classtable->errors()) {
+  if (env->errors()) {
     delete env;
     delete classtable;
     cerr << "Compilation halted due to static semantic errors." << endl;
@@ -1102,8 +1092,4 @@ void program_class::semant() {
   }
   delete env;
   delete classtable;
-}
-
-Class_ ClassTable::lookup_class(Symbol name) {
-  return class_table.lookup(name);
 }
