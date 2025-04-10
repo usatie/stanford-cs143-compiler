@@ -14,27 +14,11 @@
 class ClassTable;
 typedef ClassTable *ClassTableP;
 typedef SymbolTable<Symbol, Class__class> InternalClassTable;
-typedef SymbolTable<Symbol, Entry> ObjectTable;
-typedef SymbolTable<Symbol, tree_node> SymTab;
 
 // This is a structure that may be used to contain the semantic
 // information such as the inheritance graph.  You may use it or not as
 // you like: it is only here to provide a container for the supplied
 // methods.
-
-class TypeEnvironment {
-private:
-  typedef SymbolTable<Symbol, Entry> ObjectEnvironment;
-  typedef SymbolTable<Symbol, method_class> MethodEnvironment;
-  typedef Class_ CurrentClass;
-
-public:
-  TypeEnvironment();
-  ~TypeEnvironment();
-  ObjectEnvironment o;
-  MethodEnvironment m;
-  CurrentClass c;
-};
 
 class ClassTable {
 private:
@@ -66,6 +50,21 @@ public:
   Symbol join_type(Symbol s1, Symbol s2);
   method_class *lookup_method(Class_ cls, Symbol name);
   void semant_main();
+};
+
+class TypeEnvironment {
+private:
+  typedef SymbolTable<Symbol, Entry> ObjectEnvironment;
+  typedef SymbolTable<Symbol, method_class> MethodEnvironment;
+  typedef Class_ CurrentClass;
+
+public:
+  TypeEnvironment(ClassTableP ct);
+  ~TypeEnvironment();
+  ClassTableP classtable;
+  ObjectEnvironment o;
+  MethodEnvironment m;
+  CurrentClass c;
 };
 
 #endif
