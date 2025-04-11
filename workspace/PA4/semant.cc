@@ -532,21 +532,37 @@ void class__class::exit_scope(ClassTable *classtable) {
 //   determine the static type of joining two classes.
 //
 ///////////////////////////////////////////////////////////////////
+// A <= B if A is a subclass of B
 bool conforms_to(Symbol A, Symbol B) {
-  // A ≤ A for all types A
+  if (A == No_class) {
+    return false;
+  }
+  // 1. Contains SELF_TYPE in comparison
+  // 1-1. SELF_TYPEc <= SELF_TYPEc
+  if (A == SELF_TYPE && B == SELF_TYPE) {
+    return true;
+  }
+  // 1-2. SELF_TYPEc <= T if C <= T
+  if (A == SELF_TYPE) {
+    return conforms_to(env->lookup_class(A)->get_name(), B);
+  }
+  // 1-3. T <= SELF_TYPEc is always false
+  if (B == SELF_TYPE) {
+    return false;
+  }
+  // 2. Normal case
+  // 2-1. X ≤ X
   if (A == B) {
     return true;
   }
-  auto A_class = env->lookup_class(A);
-  if (A_class == NULL) {
-    return false;
+  // 2-2. X <= Y if X inherits from Y
+  auto parent = env->lookup_class(A)->get_parent();
+  if (parent == B) {
+    return true;
   }
-  // SELF_TYPE_c <= P if C <= P
-  if (A == SELF_TYPE) {
-    return conforms_to(A_class->get_name(), B);
-  }
-  // if A ≤ C and C ≤ P then A ≤ P
-  return conforms_to(A_class->get_parent(), B);
+  // 2-3. X <= Z if X ≤ Y and Y ≤ Z
+  //     (A <= parent && parent <= B)
+  return conforms_to(parent, B);
 }
 
 Symbol join_type(Symbol s1, Symbol s2) {
