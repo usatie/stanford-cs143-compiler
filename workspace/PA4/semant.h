@@ -43,9 +43,6 @@ public:
   ostream &semant_error(Symbol filename, tree_node *t);
 
   void semant_cyclic_inheritance(Classes classes);
-  void semant_name_scope(Classes classes);
-  method_class *lookup_method(Class_ cls, Symbol name);
-  void semant_main();
 };
 
 class TypeEnvironment {
@@ -61,11 +58,10 @@ public:
   ObjectEnvironment o;
   MethodEnvironment m;
   CurrentClass c;
+  ostream &semant_error() { return classtable->semant_error(); }
   ostream &semant_error(tree_node *t);
   int errors() { return classtable->errors(); }
-  Class_ lookup_class(Symbol name) {
-    return classtable->class_table.lookup(name);
-  }
+  Class_ lookup_class(Symbol name);
 };
 
 #endif

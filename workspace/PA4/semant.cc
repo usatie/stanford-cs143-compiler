@@ -22,6 +22,9 @@ static Symbol arg, arg2, Bool, concat, cool_abort, copy, Int, in_int, in_string,
 static Class_ Object_class;
 // TODO: Refactor this as non-global variable later
 static TypeEnvironment *env;
+
+// Forward declarations
+method_class *lookup_method_in_hierarchy(Class_ cls, Symbol name);
 //
 // Initializing the predefined symbols.
 //
@@ -201,7 +204,18 @@ TypeEnvironment::~TypeEnvironment() {
 }
 
 ostream &TypeEnvironment::semant_error(tree_node *t) {
+  Class_ cls = dynamic_cast<Class_>(t);
+  if (cls != NULL) {
+    return classtable->semant_error(cls);
+  }
   return classtable->semant_error(c->get_filename(), t);
+}
+
+Class_ TypeEnvironment::lookup_class(Symbol name) {
+  if (name == SELF_TYPE) {
+    return c;
+  }
+  return classtable->class_table.lookup(name);
 }
 
 /* Check Illegal Undefined/Basic class inheritance */
@@ -368,6 +382,41 @@ ostream &ClassTable::semant_error() {
 
 ////////////////////////////////////////////////////////////////////
 //
+// lookup_method is a method that looks up a method in the class
+// hierarchy.
+//
+// method_class *lookup_method(Class_ cls, Symbol name)
+//   Returns the method with the given name in the class hierarchy.
+//
+// method_class *class__class::lookup_method(Symbol name)
+//   Looks up a method in the class. It is used to find the
+//   method in the class hierarchy.
+//
+///////////////////////////////////////////////////////////////////
+method_class *lookup_method_in_hierarchy(Class_ cls, Symbol name) {
+  if (cls == NULL) {
+    return NULL;
+  }
+  auto method = cls->lookup_method(name);
+  if (method != NULL) {
+    return method;
+  }
+  auto parent = env->lookup_class(cls->get_parent());
+  return lookup_method_in_hierarchy(parent, name);
+}
+
+method_class *class__class::lookup_method(Symbol name) {
+  for (int i = features->first(); features->more(i); i = features->next(i)) {
+    auto feature = features->nth(i);
+    if (feature->is_method() && feature->get_name() == name) {
+      return dynamic_cast<method_class *>(feature);
+    }
+  }
+  return NULL;
+}
+
+////////////////////////////////////////////////////////////////////
+//
 // Install features
 //
 ///////////////////////////////////////////////////////////////////
@@ -450,7 +499,7 @@ void class__class::install_features(ClassTable *classtable) {
     auto feature = features->nth(i);
     if (feature->is_method()) {
       auto overrided_method =
-          classtable->lookup_method(parent, feature->get_name());
+          lookup_method_in_hierarchy(parent, feature->get_name());
       install_method(classtable, dynamic_cast<method_class *>(feature),
                      overrided_method);
     } else {
@@ -513,41 +562,6 @@ Symbol join_type(Symbol s1, Symbol s2) {
   auto s1_class = env->lookup_class(s1);
   auto s2_class = env->lookup_class(s2);
   return join_type(s1_class->get_parent(), s2_class->get_parent());
-}
-
-////////////////////////////////////////////////////////////////////
-//
-// lookup_method is a method that looks up a method in the class
-// hierarchy.
-//
-// method_class *ClassTable::lookup_method(Class_ cls, Symbol name)
-//   Returns the method with the given name in the class hierarchy.
-//
-// method_class *class__class::lookup_method(Symbol name)
-//   Looks up a method in the class. It is used to find the
-//   method in the class hierarchy.
-//
-///////////////////////////////////////////////////////////////////
-method_class *ClassTable::lookup_method(Class_ cls, Symbol name) {
-  if (cls == NULL) {
-    return NULL;
-  }
-  auto method = cls->lookup_method(name);
-  if (method != NULL) {
-    return method;
-  }
-  auto parent = env->lookup_class(cls->get_parent());
-  return lookup_method(parent, name);
-}
-
-method_class *class__class::lookup_method(Symbol name) {
-  for (int i = features->first(); features->more(i); i = features->next(i)) {
-    auto feature = features->nth(i);
-    if (feature->is_method() && feature->get_name() == name) {
-      return dynamic_cast<method_class *>(feature);
-    }
-  }
-  return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -897,7 +911,7 @@ void dispatch_class::semant_name_scope(ClassTableP classtable) {
   auto expr_type = expr->get_type();
   // Check if name is a method of the class of the expr
   auto expr_class = env->lookup_class(expr_type);
-  auto method = classtable->lookup_method(expr_class, name);
+  auto method = lookup_method_in_hierarchy(expr_class, name);
   set_type(Object);
   if (method == NULL) {
     env->semant_error(this)
@@ -940,7 +954,7 @@ void static_dispatch_class::semant_name_scope(ClassTableP classtable) {
   expr->semant_name_scope(classtable);
   auto left_class = env->lookup_class(expr->get_type());
   auto right_class = env->lookup_class(type_name);
-  auto method = classtable->lookup_method(right_class, name);
+  auto method = lookup_method_in_hierarchy(right_class, name);
   set_type(Object);
   if (type_name == SELF_TYPE) {
     env->semant_error(this) << "Static dispatch to SELF_TYPE." << std::endl;
@@ -1018,7 +1032,40 @@ void object_class::semant_name_scope(ClassTableP classtable) {
   }
 }
 
-void ClassTable::semant_name_scope(Classes classes) {
+////////////////////////////////////////////////////////////////////
+//
+// Semantic analysis
+//
+// semant_main is a method that checks the existence of the
+// Main class and the main method. It is used to
+// check the entry point of the program.
+//
+// semant_name_scope is a method that performs semantic analysis
+// on the class hierarchy. It is implemented for each AST node
+// type.
+//
+///////////////////////////////////////////////////////////////////
+static void semant_main() {
+  if (semant_debug) {
+    std::cout << "Checking main..." << std::endl;
+  }
+  auto c = env->lookup_class(Main);
+  if (c == NULL) {
+    env->semant_error() << "Class Main is not defined." << std::endl;
+    return;
+  }
+  auto m = c->lookup_method(main_meth);
+  if (m == NULL) {
+    env->semant_error(c) << "No 'main' method in class Main." << std::endl;
+    return;
+  }
+  if (m->get_formals()->len() != 0) {
+    env->semant_error(c)
+        << "'main' method in class Main should have no arguments." << std::endl;
+  }
+}
+
+static void semant_name_scope(Classes classes) {
   if (semant_debug) {
     std::cout << "Checking naming and scoping..." << std::endl;
   }
@@ -1028,11 +1075,8 @@ void ClassTable::semant_name_scope(Classes classes) {
   /* Naming and Scoping check for each class */
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
     auto c = classes->nth(i);
-    class_table.enterscope(); // In order to add SELF_TYPE and later remove it
-    class_table.addid(SELF_TYPE, c);
     env->c = c;
-    c->semant_name_scope(this);
-    class_table.exitscope();
+    c->semant_name_scope(env->classtable);
   }
 }
 
@@ -1050,22 +1094,6 @@ void ClassTable::semant_name_scope(Classes classes) {
      to build mycoolc.
  */
 
-void ClassTable::semant_main() {
-  auto c = env->lookup_class(Main);
-  if (c == NULL) {
-    semant_error() << "Class Main is not defined." << std::endl;
-    return;
-  }
-  auto m = c->lookup_method(main_meth);
-  if (m == NULL) {
-    semant_error(c) << "No 'main' method in class Main." << std::endl;
-    return;
-  }
-  if (m->get_formals()->len() != 0) {
-    semant_error(c) << "'main' method in class Main should have no arguments."
-                    << std::endl;
-  }
-}
 void program_class::semant() {
   initialize_constants();
 
@@ -1081,7 +1109,7 @@ void program_class::semant() {
   }
   /* Check Naming and Scoping */
   if (env->errors() == 0) {
-    classtable->semant_name_scope(classes);
+    semant_name_scope(classes);
   }
 
   if (env->errors()) {
