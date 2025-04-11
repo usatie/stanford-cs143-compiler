@@ -523,13 +523,14 @@ void class__class::exit_scope(ClassTable *classtable) {
 //
 // Type Annotation and Type Checking
 //
-// bool ClassTable::conforms_to(Symbol A, Symbol B)
+// bool conforms_to(Symbol A, Symbol B)
 //   Checks if class A conforms to class B. It is used to check if
 //   a class is a subclass of another class.
 //
-// Symbol ClassTable::join_type(Symbol s1, Symbol s2)
-//   Returns the common ancestor of two classes. It is used to
-//   determine the static type of joining two classes.
+// Symbol lub(Symbol s1, Symbol s2)
+//   Returns the least upper bound (common ancestor) of two
+//   classes. It is used to determine the static type of joining
+//   two classes.
 //
 ///////////////////////////////////////////////////////////////////
 // A <= B if A is a subclass of B
@@ -565,19 +566,32 @@ bool conforms_to(Symbol A, Symbol B) {
   return conforms_to(parent, B);
 }
 
-Symbol join_type(Symbol s1, Symbol s2) {
-  // case 1 : s1 is a subclass of s2
-  if (conforms_to(s1, s2)) {
-    return s2;
+Symbol lub(Symbol s1, Symbol s2) {
+  // 1-1. lub(SELF_TYPEc, SELF_TYPEc) = SELF_TYPEc
+  if (s1 == SELF_TYPE && s2 == SELF_TYPE) {
+    return SELF_TYPE;
   }
-  // case 2 : s2 is a subclass of s1
-  if (conforms_to(s2, s1)) {
-    return s1;
+  // 1-2. lub(SELF_TYPEc, T) = lub(C, T)
+  if (s1 == SELF_TYPE) {
+    return lub(env->lookup_class(s1)->get_name(), s2);
   }
-  // case 3 : s1 and s2 has a common ancestor
-  auto s1_class = env->lookup_class(s1);
-  auto s2_class = env->lookup_class(s2);
-  return join_type(s1_class->get_parent(), s2_class->get_parent());
+  // 1-3. lub(T, SELF_TYPEc) = lub(C, T)
+  if (s2 == SELF_TYPE) {
+    return lub(env->lookup_class(s2)->get_name(), s1);
+  }
+  while (1) {
+    // case 1 : s1 is a subclass of s2
+    if (conforms_to(s1, s2)) {
+      return s2;
+    }
+    // case 2 : s2 is a subclass of s1
+    if (conforms_to(s2, s1)) {
+      return s1;
+    }
+    // case 3 : s1 and s2 has a common ancestor
+    s1 = env->lookup_class(s1)->get_parent();
+    s2 = env->lookup_class(s2)->get_parent();
+  }
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -856,7 +870,7 @@ void typcase_class::semant_name_scope(ClassTableP classtable) {
     if (type == NULL) {
       set_type(branch->get_type());
     } else {
-      set_type(join_type(branch->get_type(), get_type()));
+      set_type(lub(branch->get_type(), get_type()));
     }
   }
   classtable->branch_table.exitscope();
@@ -919,7 +933,7 @@ void cond_class::semant_name_scope(ClassTableP classtable) {
   then_exp->semant_name_scope(classtable);
   else_exp->semant_name_scope(classtable);
   // Set type (join of then and else)
-  set_type(join_type(then_exp->get_type(), else_exp->get_type()));
+  set_type(lub(then_exp->get_type(), else_exp->get_type()));
 }
 
 void dispatch_class::semant_name_scope(ClassTableP classtable) {
