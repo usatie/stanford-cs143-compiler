@@ -60,7 +60,8 @@ grade: cgen
 
 .PHONY: fmt
 fmt:
-	clang-format -i cgen.cc cgen.h cgen_supp.cc emit.h symtab.h cool-tree.handcode.h
+	@#clang-format -i cgen.cc cgen.h cgen_supp.cc emit.h symtab.h cool-tree.handcode.h
+	clang-format -i cgen.cc cgen.h cgen_supp.cc emit.h cool-tree.handcode.h
 
 .PHONY: test
 test: cgen

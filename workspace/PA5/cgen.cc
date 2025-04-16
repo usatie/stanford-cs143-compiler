@@ -28,6 +28,20 @@
 extern void emit_string_constant(ostream &str, char *s);
 extern int cgen_debug;
 
+/*
+ * cdebug() is a macro that is used to generate debugging output.
+ * We don't have to worry about the cgen_debug value every time
+ * we want to print something. It is used in the following way:
+ *
+ *   cdebug() << "..." << endl;
+ *
+ */
+static std::ostream *debug_stream = NULL;
+#define cdebug()                                                               \
+  if (!cgen_debug || !debug_stream) {                                          \
+  } else                                                                       \
+    *debug_stream << "# "
+
 //
 // Three symbols from the semantic analyzer (semant.cc) are used.
 // If e : No_type, then no code is generated for e.
@@ -105,6 +119,8 @@ BoolConst truebool(TRUE);
 void program_class::cgen(ostream &os) {
   // spim wants comments to start with '#'
   os << "# start of generated code\n";
+  // Set up the debug stream
+  debug_stream = &os;
 
   initialize_constants();
   CgenClassTable *codegen_classtable = new CgenClassTable(classes, os);
